@@ -159,6 +159,7 @@ const ImposterGame = () => {
             <CardReveal
               player={currentPlayer}
               secretWord={state.secretWord}
+              confusedWord={state.confusedWord}
               categoryId={state.selectedCategory}
               showHint={state.settings.imposterHint}
               isTrollRound={state.isTrollRound}

@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { Settings, Users, Timer, Eye, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings, Users, Timer, Eye, Zap, ChevronDown, Laugh, HelpCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { NumberStepper } from './NumberStepper';
 import type { GameSettings } from '@/hooks/useGameState';
 
 interface SettingsPanelProps {
@@ -10,6 +11,33 @@ interface SettingsPanelProps {
   onUpdateSettings: (settings: Partial<GameSettings>) => void;
   maxImposters: number;
 }
+
+interface SettingRowProps {
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
+  highlight?: boolean;
+  children: React.ReactNode;
+}
+
+const SettingRow = ({ icon, label, description, highlight, children }: SettingRowProps) => (
+  <div className={`flex w-full justify-between items-center p-4 rounded-xl ${highlight ? 'bg-secondary/10 border border-secondary/20' : ''}`}>
+    <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className={`p-2 rounded-lg flex-shrink-0 ${highlight ? 'bg-secondary/20' : 'bg-primary/10'}`}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <span className={`font-medium block ${highlight ? 'text-secondary' : ''}`}>{label}</span>
+        {description && (
+          <p className="text-xs text-muted-foreground truncate">{description}</p>
+        )}
+      </div>
+    </div>
+    <div className="flex-shrink-0 mr-3">
+      {children}
+    </div>
+  </div>
+);
 
 export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: SettingsPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -31,7 +59,7 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
             <Settings className="w-5 h-5 text-secondary" />
           </div>
           <div className="text-right">
-            <h3 className="font-bold text-lg">הגדרות</h3>
+            <h3 className="font-bold text-lg">הגדרות משחק</h3>
             <p className="text-sm text-muted-foreground">
               {settings.imposterCount} מתחזים • {settings.timerEnabled ? `${settings.timerDuration} דקות` : 'ללא טיימר'}
             </p>
@@ -55,88 +83,104 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         className="overflow-hidden"
       >
-        <div className="p-4 pt-0 space-y-6">
-          {/* Imposter Count */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
+        <div className="p-4 pt-0 space-y-3">
+          {/* Imposter Count - Custom Stepper */}
+          <div className="p-4 rounded-xl bg-muted/10">
+            <div className="flex items-center gap-2 mb-4">
               <Users className="w-4 h-4 text-primary" />
               <span className="font-medium">מספר מתחזים</span>
-              <span className="mr-auto text-primary font-bold">{settings.imposterCount}</span>
             </div>
-            <Slider
-              value={[settings.imposterCount]}
-              onValueChange={([value]) => onUpdateSettings({ imposterCount: value })}
-              min={1}
-              max={Math.max(1, maxImposters)}
-              step={1}
-              className="w-full"
-            />
-          </div>
-
-          {/* Timer */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Timer className="w-4 h-4 text-primary" />
-                <span className="font-medium">טיימר</span>
-              </div>
-              <Switch
-                checked={settings.timerEnabled}
-                onCheckedChange={(checked) => onUpdateSettings({ timerEnabled: checked })}
+            <div className="flex justify-center">
+              <NumberStepper
+                value={settings.imposterCount}
+                onChange={(value) => onUpdateSettings({ imposterCount: value })}
+                min={1}
+                max={Math.max(1, maxImposters)}
               />
             </div>
-            
-            {settings.timerEnabled && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-2"
-              >
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">משך הסיבוב</span>
-                  <span className="text-primary font-bold">{settings.timerDuration} דקות</span>
-                </div>
-                <Slider
-                  value={[settings.timerDuration]}
-                  onValueChange={([value]) => onUpdateSettings({ timerDuration: value })}
-                  min={1}
-                  max={15}
-                  step={1}
-                />
-              </motion.div>
-            )}
           </div>
 
-          {/* Imposter Hint */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-primary" />
-              <div>
-                <span className="font-medium">רמז למתחזה</span>
-                <p className="text-xs text-muted-foreground">המתחזה יראה את שם הקטגוריה</p>
-              </div>
-            </div>
+          {/* Timer Toggle */}
+          <SettingRow
+            icon={<Timer className="w-4 h-4 text-primary" />}
+            label="טיימר"
+            description={settings.timerEnabled ? `${settings.timerDuration} דקות` : 'כבוי'}
+          >
             <Switch
-              checked={settings.imposterHint}
-              onCheckedChange={(checked) => onUpdateSettings({ imposterHint: checked })}
+              checked={settings.timerEnabled}
+              onCheckedChange={(checked) => onUpdateSettings({ timerEnabled: checked })}
             />
-          </div>
+          </SettingRow>
+          
+          {settings.timerEnabled && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-4 pb-2"
+            >
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-muted-foreground">משך הסיבוב</span>
+                <span className="text-primary font-bold">{settings.timerDuration} דקות</span>
+              </div>
+              <Slider
+                value={[settings.timerDuration]}
+                onValueChange={([value]) => onUpdateSettings({ timerDuration: value })}
+                min={1}
+                max={15}
+                step={1}
+              />
+            </motion.div>
+          )}
 
           {/* Troll Mode */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/10 border border-secondary/20">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-secondary" />
-              <div>
-                <span className="font-medium text-secondary">מצב טרול 🤪</span>
-                <p className="text-xs text-muted-foreground">10% סיכוי שכולם יהיו מתחזים!</p>
-              </div>
-            </div>
+          <SettingRow
+            icon={<Zap className="w-4 h-4 text-secondary" />}
+            label="מצב טרול 🤪"
+            description="10% סיכוי שכולם יהיו מתחזים!"
+            highlight
+          >
             <Switch
               checked={settings.trollMode}
               onCheckedChange={(checked) => onUpdateSettings({ trollMode: checked })}
             />
-          </div>
+          </SettingRow>
+
+          {/* Jester Toggle */}
+          <SettingRow
+            icon={<Laugh className="w-4 h-4 text-primary" />}
+            label="הוסף את הג'וקר 🃏"
+            description="מנצח אם מצביעים עליו"
+          >
+            <Switch
+              checked={settings.jesterEnabled}
+              onCheckedChange={(checked) => onUpdateSettings({ jesterEnabled: checked })}
+            />
+          </SettingRow>
+
+          {/* Confused Toggle */}
+          <SettingRow
+            icon={<HelpCircle className="w-4 h-4 text-primary" />}
+            label="הוסף את המבולבל 😵"
+            description="מקבל מילה דומה"
+          >
+            <Switch
+              checked={settings.confusedEnabled}
+              onCheckedChange={(checked) => onUpdateSettings({ confusedEnabled: checked })}
+            />
+          </SettingRow>
+
+          {/* Imposter Hint */}
+          <SettingRow
+            icon={<Eye className="w-4 h-4 text-primary" />}
+            label="רמז למתחזה"
+            description="המתחזה יראה את שם הקטגוריה"
+          >
+            <Switch
+              checked={settings.imposterHint}
+              onCheckedChange={(checked) => onUpdateSettings({ imposterHint: checked })}
+            />
+          </SettingRow>
         </div>
       </motion.div>
     </motion.div>
