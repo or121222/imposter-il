@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getRandomWordPair, getTrollWords } from '@/data/gameCategories';
 
-export type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'playing' | 'voting';
+export type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'starter' | 'playing' | 'voting';
 
 export type PlayerRole = 'civilian' | 'imposter' | 'jester' | 'confused';
 
@@ -20,6 +20,7 @@ export interface GameSettings {
   trollMode: boolean;
   jesterEnabled: boolean;
   confusedEnabled: boolean;
+  imposterNeverStarts: boolean;
 }
 
 export interface GameState {
@@ -32,6 +33,7 @@ export interface GameState {
   currentPlayerIndex: number;
   isTrollRound: boolean;
   trollWord: string | null;
+  roundStarter: string | null; // Name of player who starts the round
 }
 
 const defaultSettings: GameSettings = {
@@ -42,6 +44,7 @@ const defaultSettings: GameSettings = {
   trollMode: false,
   jesterEnabled: false,
   confusedEnabled: false,
+  imposterNeverStarts: true,
 };
 
 const initialState: GameState = {
@@ -54,6 +57,7 @@ const initialState: GameState = {
   currentPlayerIndex: 0,
   isTrollRound: false,
   trollWord: null,
+  roundStarter: null,
 };
 
 export const useGameState = () => {
@@ -185,11 +189,25 @@ export const useGameState = () => {
       const nextIndex = prev.currentPlayerIndex + 1;
       const allSeen = nextIndex >= prev.players.length;
 
+      // Select round starter when all players have seen their cards
+      let roundStarter = prev.roundStarter;
+      if (allSeen) {
+        // Filter eligible starters based on settings
+        let eligiblePlayers = newPlayers;
+        if (prev.settings.imposterNeverStarts && !prev.isTrollRound) {
+          eligiblePlayers = newPlayers.filter(p => p.role !== 'imposter');
+        }
+        // Pick random starter from eligible players
+        const starterPlayer = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
+        roundStarter = starterPlayer.name;
+      }
+
       return {
         ...prev,
         players: newPlayers,
         currentPlayerIndex: allSeen ? 0 : nextIndex,
-        phase: allSeen ? 'playing' : 'passing',
+        phase: allSeen ? 'starter' : 'passing',
+        roundStarter,
       };
     });
   }, []);

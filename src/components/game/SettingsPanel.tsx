@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Settings, Users, Timer, Eye, Zap, ChevronDown, Laugh, HelpCircle } from 'lucide-react';
+import { Settings, Users, Timer, Eye, Zap, ChevronDown, Laugh, HelpCircle, UserX } from 'lucide-react';
 import { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { VxToggle } from '@/components/ui/vx-toggle';
@@ -174,7 +174,6 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
             />
           </SettingRow>
 
-          {/* Imposter Hint */}
           <SettingRow
             icon={<Eye className="w-4 h-4 text-primary" />}
             label="רמז למתחזה"
@@ -184,6 +183,19 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
               aria-label="רמז למתחזה"
               value={settings.imposterHint}
               onValueChange={(value) => onUpdateSettings({ imposterHint: value })}
+            />
+          </SettingRow>
+
+          {/* Imposter Never Starts */}
+          <SettingRow
+            icon={<UserX className="w-4 h-4 text-primary" />}
+            label="המתחזה בחיים לא מתחיל"
+            description="המתחזה לא יתחיל ראשון"
+          >
+            <VxToggle
+              aria-label="המתחזה בחיים לא מתחיל"
+              value={settings.imposterNeverStarts}
+              onValueChange={(value) => onUpdateSettings({ imposterNeverStarts: value })}
             />
           </SettingRow>
         </div>

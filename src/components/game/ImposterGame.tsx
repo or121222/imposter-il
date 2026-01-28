@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, ChevronLeft, Sun, Moon, Volume2, VolumeX } from 'lucide-react';
+import { Play, ChevronLeft, Sun, Moon, Volume2, VolumeX, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useGameState } from '@/hooks/useGameState';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
 import { useTheme } from '@/hooks/useTheme';
+import { useHaptics } from '@/hooks/useHaptics';
 import { GameLogo } from '@/components/game/GameLogo';
 import { PlayerInput } from '@/components/game/PlayerInput';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
@@ -12,6 +13,8 @@ import { HelpModal } from '@/components/game/HelpModal';
 import { PassingScreen } from '@/components/game/PassingScreen';
 import { CardReveal } from '@/components/game/CardReveal';
 import { ActiveGameScreen } from '@/components/game/ActiveGameScreen';
+import { RoundStarterScreen } from '@/components/game/RoundStarterScreen';
+import { InstallPrompt } from '@/components/game/InstallPrompt';
 
 const ImposterGame = () => {
   const {
@@ -31,7 +34,9 @@ const ImposterGame = () => {
 
   const soundEffects = useSoundEffects();
   const { theme, toggleTheme } = useTheme();
+  const { vibrate } = useHaptics();
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   // Set global sound instance for other components
   useEffect(() => {
@@ -49,16 +54,29 @@ const ImposterGame = () => {
 
   const handleStartGame = () => {
     soundEffects.playSound('success');
+    vibrate('success');
     startGame();
   };
 
   const handleRevealCard = () => {
     if (currentPlayer?.role === 'imposter') {
       soundEffects.playSound('imposter');
+      vibrate('heavy');
     } else {
       soundEffects.playSound('reveal');
+      vibrate('medium');
     }
     revealCard();
+  };
+
+  const handleMarkSeen = () => {
+    vibrate('light');
+    markPlayerSeen();
+  };
+
+  const handleStartRound = () => {
+    vibrate('success');
+    setPhase('playing');
   };
 
   const canStart = state.players.length >= 3 && state.selectedCategory;
@@ -145,6 +163,22 @@ const ImposterGame = () => {
                   הוסיפו עוד {3 - state.players.length} שחקנים כדי להתחיל
                 </p>
               )}
+
+              {/* Footer */}
+              <div className="pt-8 pb-4 space-y-4">
+                <motion.button
+                  onClick={() => setShowInstallPrompt(true)}
+                  className="w-full py-3 rounded-xl glass-card flex items-center justify-center gap-2 hover:bg-muted/40 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Download className="w-5 h-5 text-primary" />
+                  <span className="font-medium">הורידו עכשיו</span>
+                </motion.button>
+                <p className="text-center text-xs text-muted-foreground">
+                  כל הזכויות שמורות ל - אור כהן
+                </p>
+              </div>
             </div>
           </motion.div>
         )}
@@ -227,7 +261,22 @@ const ImposterGame = () => {
               showHint={state.settings.imposterHint}
               isTrollRound={state.isTrollRound}
               trollWord={state.trollWord}
-              onHide={markPlayerSeen}
+              onHide={handleMarkSeen}
+            />
+          </motion.div>
+        )}
+
+        {/* Round Starter Phase */}
+        {state.phase === 'starter' && state.roundStarter && (
+          <motion.div
+            key="starter"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <RoundStarterScreen
+              starterName={state.roundStarter}
+              onStart={handleStartRound}
             />
           </motion.div>
         )}
@@ -252,6 +301,9 @@ const ImposterGame = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Install Prompt Modal */}
+      <InstallPrompt isOpen={showInstallPrompt} onClose={() => setShowInstallPrompt(false)} />
     </div>
   );
 };
