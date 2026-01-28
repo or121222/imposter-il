@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Vote, ChevronLeft, BarChart3, Trophy, SkipForward } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import type { Player } from '@/hooks/useGameState';
 
 interface VotingScreenProps {
@@ -180,6 +181,49 @@ export const VotingResults = ({ players, votes, onRevealRoles }: VotingResultsPr
   const maxVotes = Math.max(...Object.values(voteCounts));
   const eliminated = sortedPlayers.find(p => voteCounts[p.id] === maxVotes);
 
+  // Check if imposter was caught
+  const imposterCaught = eliminated && (eliminated.role === 'imposter' || eliminated.role === 'accomplice');
+
+  // Fire confetti if imposter was caught
+  useEffect(() => {
+    if (imposterCaught) {
+      // Fire multiple confetti bursts
+      const duration = 3000;
+      const end = Date.now() + duration;
+
+      const frame = () => {
+        confetti({
+          particleCount: 3,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#00f5ff', '#ff00aa', '#ffff00'],
+        });
+        confetti({
+          particleCount: 3,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#00f5ff', '#ff00aa', '#ffff00'],
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      };
+
+      // Initial big burst
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#00f5ff', '#ff00aa', '#ffff00', '#00ff00'],
+      });
+
+      frame();
+    }
+  }, [imposterCaught]);
+
   return (
     <motion.div
       className="min-h-screen flex flex-col p-6"
@@ -234,18 +278,25 @@ export const VotingResults = ({ players, votes, onRevealRoles }: VotingResultsPr
       {/* Eliminated player */}
       {eliminated && voteCounts[eliminated.id] > 0 && (
         <motion.div
-          className="glass-card-strong p-6 mb-6 text-center border-2 border-secondary"
+          className={`glass-card-strong p-6 mb-6 text-center border-2 ${
+            imposterCaught ? 'border-green-500' : 'border-secondary'
+          }`}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5 }}
         >
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Trophy className="w-6 h-6 text-secondary" />
-            <span className="text-lg font-bold text-secondary">המודח:</span>
+            <Trophy className={`w-6 h-6 ${imposterCaught ? 'text-green-500' : 'text-secondary'}`} />
+            <span className={`text-lg font-bold ${imposterCaught ? 'text-green-500' : 'text-secondary'}`}>
+              {imposterCaught ? '🎉 המתחזה נתפס!' : 'המודח:'}
+            </span>
           </div>
-          <p className="text-2xl font-black text-gradient-secondary">
+          <p className={`text-2xl font-black ${imposterCaught ? 'text-green-500' : 'text-gradient-secondary'}`}>
             {eliminated.name}
           </p>
+          {imposterCaught && (
+            <p className="text-sm text-muted-foreground mt-2">האזרחים ניצחו! 🏆</p>
+          )}
         </motion.div>
       )}
 
