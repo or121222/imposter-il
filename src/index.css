@@ -308,17 +308,25 @@
     background-clip: text;
   }
 
-  /* Shimmer animation for highlights */
+  /* Shimmer animation for highlights - smooth continuous loop */
   @keyframes shimmer {
     0% {
       transform: translateX(-100%);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
     }
     100% {
       transform: translateX(100%);
+      opacity: 0;
     }
   }
 
   .animate-shimmer {
-    animation: shimmer 2s ease-in-out infinite;
+    animation: shimmer 3s linear infinite;
   }
 }

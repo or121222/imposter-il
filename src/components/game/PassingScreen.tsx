@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Smartphone, ArrowLeft } from 'lucide-react';
 import type { Player } from '@/hooks/useGameState';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 interface PassingScreenProps {
   player: Player;
@@ -8,6 +9,13 @@ interface PassingScreenProps {
 }
 
 export const PassingScreen = ({ player, onReveal }: PassingScreenProps) => {
+  const sounds = useSoundEffects();
+
+  const handleReveal = () => {
+    sounds.playSound('click');
+    onReveal();
+  };
+
   return (
     <motion.div
       className="min-h-screen flex flex-col items-center justify-center p-6"
@@ -46,7 +54,7 @@ export const PassingScreen = ({ player, onReveal }: PassingScreenProps) => {
 
         {/* Reveal button */}
         <motion.button
-          onClick={onReveal}
+          onClick={handleReveal}
           className="btn-neon w-full pulse-glow flex items-center justify-center gap-2"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}

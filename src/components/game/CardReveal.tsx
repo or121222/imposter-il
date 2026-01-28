@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Skull, Sparkles, Laugh, UserPlus, Folder } from 'lucide-react';
+import { Eye, EyeOff, Skull, Sparkles, Laugh, UserPlus, Layers } from 'lucide-react';
+import { useEffect } from 'react';
 import type { Player } from '@/hooks/useGameState';
 import { gameCategories, type Category } from '@/data/gameCategories';
+import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
+
 interface CardRevealProps {
   player: Player;
   secretWord: string;
@@ -14,6 +17,7 @@ interface CardRevealProps {
   onHide: () => void;
   customCategories?: Category[];
 }
+
 export const CardReveal = ({
   player,
   secretWord,
@@ -28,9 +32,22 @@ export const CardReveal = ({
 }: CardRevealProps) => {
   const allCategories = [...gameCategories, ...customCategories];
   const category = allCategories.find(c => c.id === categoryId);
-  const {
-    role
-  } = player;
+  const { role } = player;
+  const sounds = useSoundEffects();
+
+  // Initialize global sound effects
+  useEffect(() => {
+    setGlobalSoundEffects(sounds);
+  }, [sounds]);
+
+  // Play sound on card reveal
+  useEffect(() => {
+    if (role === 'imposter' || role === 'accomplice') {
+      sounds.playSound('imposter');
+    } else {
+      sounds.playSound('reveal');
+    }
+  }, [role, sounds]);
 
   // Determine what word to display based on role
   const getDisplayContent = () => {
@@ -70,38 +87,59 @@ export const CardReveal = ({
   };
   const content = getDisplayContent();
 
+  const handleHide = () => {
+    sounds.playSound('click');
+    onHide();
+  };
+
   // Category header component - shows for civilians, confused, and accomplice
   const CategoryHeader = () => {
     if (!category || content.type === 'imposter' || content.type === 'jester') {
       return null;
     }
-    return <motion.div className="mb-6" initial={{
-      opacity: 0,
-      y: -20
-    }} animate={{
-      opacity: 1,
-      y: 0
-    }} transition={{
-      delay: 0.1,
-      type: 'spring',
-      damping: 20
-    }}>
-        <motion.div className="relative inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20" animate={{
-        boxShadow: ['0 0 15px hsl(var(--primary) / 0.1)', '0 0 25px hsl(var(--primary) / 0.2)', '0 0 15px hsl(var(--primary) / 0.1)']
-      }} transition={{
-        duration: 3,
-        repeat: Infinity
-      }}>
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer" />
-          <Folder className="text-primary h-[40px] w-[40px]" />
-          <div className="text-right">
-            <p className="text-muted-foreground font-semibold font-serif text-3xl px-[50px] mx-0 text-justify">קטגוריה</p>
-            <p className="text-gradient-primary px-[50px] text-xl text-justify font-medium font-serif">
-              {category.emoji} {category.name}
-            </p>
+    return (
+      <motion.div 
+        className="w-full max-w-sm mb-6"
+        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ delay: 0.1, type: 'spring', damping: 25, stiffness: 300 }}
+      >
+        <motion.div 
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/15 via-primary/10 to-primary/5 border border-primary/30 backdrop-blur-xl"
+          animate={{
+            boxShadow: [
+              '0 0 20px hsl(var(--primary) / 0.15), inset 0 0 20px hsl(var(--primary) / 0.05)',
+              '0 0 30px hsl(var(--primary) / 0.25), inset 0 0 30px hsl(var(--primary) / 0.08)',
+              '0 0 20px hsl(var(--primary) / 0.15), inset 0 0 20px hsl(var(--primary) / 0.05)'
+            ]
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          {/* Shimmer effect overlay */}
+          <div className="absolute inset-0 overflow-hidden rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+          </div>
+          
+          {/* Content */}
+          <div className="relative flex items-center justify-center gap-4 px-6 py-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
+              <Layers className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">
+                קטגוריה
+              </span>
+              <span className="text-xl font-bold text-gradient-primary">
+                {category.emoji} {category.name}
+              </span>
+            </div>
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30 opacity-0">
+              <Layers className="w-6 h-6 text-primary" />
+            </div>
           </div>
         </motion.div>
-      </motion.div>;
+      </motion.div>
+    );
   };
   const renderCard = () => {
     if (content.type === 'imposter') {
@@ -328,19 +366,15 @@ export const CardReveal = ({
         {renderCard()}
 
         {/* Hide button */}
-        <motion.button onClick={onHide} className="btn-neon-magenta w-full flex items-center justify-center gap-2" whileHover={{
-        scale: 1.02
-      }} whileTap={{
-        scale: 0.98
-      }} initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.5
-      }}>
+        <motion.button 
+          onClick={handleHide} 
+          className="btn-neon-magenta w-full flex items-center justify-center gap-2" 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
           <EyeOff className="w-5 h-5" />
           <span>הסתר והעבר הלאה</span>
         </motion.button>
