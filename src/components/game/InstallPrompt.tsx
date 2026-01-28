@@ -96,10 +96,11 @@ const SafariInstructions = () => (
 );
 
 export const InstallPrompt = ({ isOpen, onClose }: InstallPromptProps) => {
-  const [browser, setBrowser] = useState<Browser>('other');
+  const [activeTab, setActiveTab] = useState<'chrome' | 'safari'>('chrome');
 
   useEffect(() => {
-    setBrowser(detectBrowser());
+    const detected = detectBrowser();
+    setActiveTab(detected === 'safari' ? 'safari' : 'chrome');
   }, []);
 
   return (
@@ -115,45 +116,71 @@ export const InstallPrompt = ({ isOpen, onClose }: InstallPromptProps) => {
             onClick={onClose}
           />
 
-          {/* Modal */}
-          <motion.div
-            className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md z-50"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          >
-            <div className="glass-card p-6 rounded-2xl h-full sm:h-auto overflow-y-auto">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/20">
-                    <Download className="w-6 h-6 text-primary" />
+          {/* Modal - using flex centering instead of transforms */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <motion.div
+              className="w-full max-w-md max-h-[90vh] pointer-events-auto"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            >
+              <div className="glass-card p-6 rounded-2xl overflow-y-auto max-h-[90vh]">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/20">
+                      <Download className="w-6 h-6 text-primary" />
+                    </div>
+                    <h2 className="text-xl font-bold">התקנת האפליקציה</h2>
                   </div>
-                  <h2 className="text-xl font-bold">התקנת האפליקציה</h2>
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-full hover:bg-muted/40 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
+
+                {/* Browser tabs */}
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => setActiveTab('chrome')}
+                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                      activeTab === 'chrome'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/20 hover:bg-muted/40'
+                    }`}
+                  >
+                    Chrome / Android
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('safari')}
+                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                      activeTab === 'safari'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/20 hover:bg-muted/40'
+                    }`}
+                  >
+                    Safari / iPhone
+                  </button>
+                </div>
+
+                {/* Instructions based on selected tab */}
+                {activeTab === 'safari' ? <SafariInstructions /> : <ChromeInstructions />}
+
+                {/* Close button */}
+                <motion.button
                   onClick={onClose}
-                  className="p-2 rounded-full hover:bg-muted/40 transition-colors"
+                  className="w-full mt-6 py-3 rounded-xl bg-muted/20 hover:bg-muted/40 transition-colors font-medium"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <X className="w-5 h-5" />
-                </button>
+                  הבנתי!
+                </motion.button>
               </div>
-
-              {/* Instructions based on browser */}
-              {browser === 'safari' ? <SafariInstructions /> : <ChromeInstructions />}
-
-              {/* Close button */}
-              <motion.button
-                onClick={onClose}
-                className="w-full mt-6 py-3 rounded-xl bg-muted/20 hover:bg-muted/40 transition-colors font-medium"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                הבנתי!
-              </motion.button>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
