@@ -124,7 +124,7 @@ export const ActiveGameScreen = ({
                   : showResults && player.role === 'jester'
                   ? 'bg-amber-500/20 border-2 border-amber-500'
                   : showResults && player.role === 'confused'
-                  ? 'bg-purple-500/20 border-2 border-purple-500'
+                  ? 'bg-primary/20 border-2 border-primary'
                   : selectedPlayer === player.id
                   ? 'bg-primary/20 border-2 border-primary'
                   : 'bg-muted/30 border border-transparent'
@@ -145,7 +145,7 @@ export const ActiveGameScreen = ({
                 <span className="text-amber-500 mr-auto">🃏</span>
               )}
               {showResults && player.role === 'confused' && (
-                <span className="text-purple-500 mr-auto">😵</span>
+                <span className="text-primary mr-auto">😵</span>
               )}
             </motion.div>
           ))}
@@ -205,13 +205,13 @@ export const ActiveGameScreen = ({
               )}
 
               {confused.length > 0 && (
-                <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
                   <p className="text-sm text-muted-foreground mb-2">המבולבל היה:</p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     {confused.map(c => (
                       <span
                         key={c.id}
-                        className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-500 font-bold"
+                        className="px-3 py-1 rounded-full bg-primary/20 text-primary font-bold"
                       >
                         {c.name} 😵
                       </span>

@@ -137,7 +137,7 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
           <SettingRow
             icon={<Zap className="w-4 h-4 text-secondary" />}
             label="מצב טרול 🤪"
-            description="10% סיכוי שכולם יהיו מתחזים!"
+            description="20% סיכוי שכולם יהיו מתחזים!"
             highlight
           >
             <Switch

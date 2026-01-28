@@ -131,6 +131,18 @@ export const CardReveal = ({
             <p className="font-bold text-amber-500">לגרום להם להצביע עליך!</p>
           </motion.div>
 
+          {category && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/10"
+            >
+              <p className="text-xs text-muted-foreground">הקטגוריה היא:</p>
+              <p className="font-bold text-amber-400">{category.emoji} {category.name}</p>
+            </motion.div>
+          )}
+
           <p className="text-muted-foreground text-sm">
             תהיה חשוד, תבלבל אותם, תנצח! 😈
           </p>
@@ -138,6 +150,7 @@ export const CardReveal = ({
       );
     }
 
+    // Confused looks exactly like civilian - no hints!
     if (content.type === 'confused') {
       return (
         <motion.div
@@ -147,29 +160,25 @@ export const CardReveal = ({
           transition={{ delay: 0.2 }}
         >
           <motion.div
-            className="mx-auto w-24 h-24 rounded-full bg-purple-500/20 flex items-center justify-center"
+            className="mx-auto w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center"
             animate={{ 
               boxShadow: [
-                '0 0 20px rgba(168, 85, 247, 0.3)',
-                '0 0 40px rgba(168, 85, 247, 0.5)',
-                '0 0 20px rgba(168, 85, 247, 0.3)',
+                '0 0 20px hsl(var(--primary) / 0.3)',
+                '0 0 40px hsl(var(--primary) / 0.5)',
+                '0 0 20px hsl(var(--primary) / 0.3)',
               ]
             }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <HelpCircle className="w-12 h-12 text-purple-500" />
+            <Eye className="w-12 h-12 text-primary" />
           </motion.div>
 
           <div>
             <p className="text-sm text-muted-foreground mb-2">המילה שלך היא:</p>
-            <h2 className="text-4xl font-black text-purple-500">
+            <h2 className="word-reveal">
               {content.word}
             </h2>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            (אתה לא יודע שאתה המבולבל... 🤫)
-          </p>
         </motion.div>
       );
     }

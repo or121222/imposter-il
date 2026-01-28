@@ -100,8 +100,8 @@ export const useGameState = () => {
   const startGame = useCallback(() => {
     if (!state.selectedCategory || state.players.length < 3) return;
 
-    // Check for troll mode (10% chance)
-    const isTrollRound = state.settings.trollMode && Math.random() < 0.1;
+    // Check for troll mode (20% chance)
+    const isTrollRound = state.settings.trollMode && Math.random() < 0.2;
     let trollWord: string | null = null;
 
     if (isTrollRound) {
