@@ -1,19 +1,30 @@
 import { motion } from 'framer-motion';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { gameCategories, type Category } from '@/data/gameCategories';
-import { useCustomCategories } from '@/hooks/useCustomCategories';
 import { CustomCategoryModal } from './CustomCategoryModal';
+import { EditCategoryModal } from './EditCategoryModal';
 
 interface CategorySelectorProps {
   selectedCategory: string | null;
   onSelectCategory: (categoryId: string) => void;
+  customCategories: Category[];
+  onAddCategory: (category: Category) => void;
+  onUpdateCategory: (categoryId: string, updates: Partial<Category>) => void;
+  onRemoveCategory: (categoryId: string) => void;
 }
 
-export const CategorySelector = ({ selectedCategory, onSelectCategory }: CategorySelectorProps) => {
-  const { customCategories, addCategory, removeCategory } = useCustomCategories();
+export const CategorySelector = ({ 
+  selectedCategory, 
+  onSelectCategory,
+  customCategories,
+  onAddCategory,
+  onUpdateCategory,
+  onRemoveCategory,
+}: CategorySelectorProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
 
   const allCategories = [...gameCategories, ...customCategories];
 
@@ -22,9 +33,14 @@ export const CategorySelector = ({ selectedCategory, onSelectCategory }: Categor
     setCategoryToDelete(categoryId);
   };
 
+  const handleEditCategory = (e: React.MouseEvent, category: Category) => {
+    e.stopPropagation();
+    setCategoryToEdit(category);
+  };
+
   const confirmDelete = () => {
     if (categoryToDelete) {
-      removeCategory(categoryToDelete);
+      onRemoveCategory(categoryToDelete);
       if (selectedCategory === categoryToDelete) {
         onSelectCategory(gameCategories[0]?.id || '');
       }
@@ -57,12 +73,20 @@ export const CategorySelector = ({ selectedCategory, onSelectCategory }: Categor
                 whileTap={{ scale: 0.98 }}
               >
                 {isCustom && (
-                  <button
-                    onClick={(e) => handleDeleteCategory(e, category.id)}
-                    className="absolute top-2 left-2 p-1 rounded-full bg-destructive/20 hover:bg-destructive/40 transition-colors z-10"
-                  >
-                    <Trash2 className="w-3 h-3 text-destructive" />
-                  </button>
+                  <div className="absolute top-2 left-2 flex gap-1 z-10">
+                    <button
+                      onClick={(e) => handleEditCategory(e, category)}
+                      className="p-1 rounded-full bg-primary/20 hover:bg-primary/40 transition-colors"
+                    >
+                      <Pencil className="w-3 h-3 text-primary" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteCategory(e, category.id)}
+                      className="p-1 rounded-full bg-destructive/20 hover:bg-destructive/40 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3 text-destructive" />
+                    </button>
+                  </div>
                 )}
                 <div className="text-3xl mb-2">{category.emoji}</div>
                 <div className="font-medium text-sm">{category.name}</div>
@@ -98,7 +122,16 @@ export const CategorySelector = ({ selectedCategory, onSelectCategory }: Categor
       <CustomCategoryModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSave={addCategory}
+        onSave={onAddCategory}
+      />
+
+      {/* Edit Category Modal */}
+      <EditCategoryModal
+        isOpen={!!categoryToEdit}
+        onClose={() => setCategoryToEdit(null)}
+        category={categoryToEdit}
+        onSave={onUpdateCategory}
+        onDelete={onRemoveCategory}
       />
 
       {/* Delete Confirmation */}

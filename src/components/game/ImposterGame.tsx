@@ -3,6 +3,7 @@ import { Play, ChevronLeft, Sun, Moon, Volume2, VolumeX, Download } from 'lucide
 import { useState, useEffect } from 'react';
 import { useGameState } from '@/hooks/useGameState';
 import { useCustomCategories } from '@/hooks/useCustomCategories';
+import { useScoring } from '@/hooks/useScoring';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
 import { useTheme } from '@/hooks/useTheme';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -17,9 +18,21 @@ import { ActiveGameScreen } from '@/components/game/ActiveGameScreen';
 import { RoundStarterScreen } from '@/components/game/RoundStarterScreen';
 import { InstallPrompt } from '@/components/game/InstallPrompt';
 import { VotingScreen, VotingResults } from '@/components/game/VotingScreen';
+import { ScoreBoard } from '@/components/game/ScoreBoard';
 
 const ImposterGame = () => {
-  const { customCategories } = useCustomCategories();
+  const { customCategories, addCategory, updateCategory, removeCategory } = useCustomCategories();
+  const {
+    playerScores,
+    addOrUpdatePlayer,
+    togglePlayerActive,
+    recordWin,
+    recordLoss,
+    removePlayer: removePlayerScore,
+    resetScores,
+    getActivePlayers,
+  } = useScoring();
+  
   const {
     state,
     currentPlayer,
@@ -47,6 +60,12 @@ const ImposterGame = () => {
   useEffect(() => {
     setGlobalSoundEffects(soundEffects);
   }, [soundEffects]);
+
+  // Add players to scoring system when they are added
+  const handleAddPlayer = (name: string) => {
+    addPlayer(name);
+    addOrUpdatePlayer(name);
+  };
 
   const handleToggleSound = () => {
     const newState = !soundEnabled;
@@ -165,9 +184,17 @@ const ImposterGame = () => {
             </div>
 
             <div className="flex-1 space-y-4">
+              {/* Score Board */}
+              <ScoreBoard
+                playerScores={playerScores}
+                onToggleActive={togglePlayerActive}
+                onRemovePlayer={removePlayerScore}
+                onResetScores={resetScores}
+              />
+
               <PlayerInput
                 players={state.players}
-                onAddPlayer={addPlayer}
+                onAddPlayer={handleAddPlayer}
                 onRemovePlayer={removePlayer}
               />
 
@@ -232,6 +259,10 @@ const ImposterGame = () => {
               <CategorySelector
                 selectedCategory={state.selectedCategory}
                 onSelectCategory={selectCategory}
+                customCategories={customCategories}
+                onAddCategory={addCategory}
+                onUpdateCategory={updateCategory}
+                onRemoveCategory={removeCategory}
               />
 
               <div className="flex gap-3">
