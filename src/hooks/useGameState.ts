@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
-import { getRandomWordPair, getTrollWords } from '@/data/gameCategories';
+import { getRandomWordPair, getTrollWords, type Category } from '@/data/gameCategories';
 
-export type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'starter' | 'playing' | 'voting';
+export type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'starter' | 'playing' | 'voting' | 'results';
 
-export type PlayerRole = 'civilian' | 'imposter' | 'jester' | 'confused';
+export type PlayerRole = 'civilian' | 'imposter' | 'jester' | 'confused' | 'accomplice';
 
 export interface Player {
   id: string;
@@ -20,6 +20,7 @@ export interface GameSettings {
   trollMode: boolean;
   jesterEnabled: boolean;
   confusedEnabled: boolean;
+  accompliceEnabled: boolean;
   imposterNeverStarts: boolean;
 }
 
@@ -34,6 +35,8 @@ export interface GameState {
   isTrollRound: boolean;
   trollWord: string | null;
   roundStarter: string | null; // Name of player who starts the round
+  imposterName: string | null; // For accomplice to see
+  votes: Record<string, string>; // voterId -> suspectId
 }
 
 const defaultSettings: GameSettings = {
@@ -44,6 +47,7 @@ const defaultSettings: GameSettings = {
   trollMode: false,
   jesterEnabled: false,
   confusedEnabled: false,
+  accompliceEnabled: false,
   imposterNeverStarts: true,
 };
 
@@ -58,9 +62,11 @@ const initialState: GameState = {
   isTrollRound: false,
   trollWord: null,
   roundStarter: null,
+  imposterName: null,
+  votes: {},
 };
 
-export const useGameState = () => {
+export const useGameState = (customCategories: Category[] = []) => {
   const [state, setState] = useState<GameState>(initialState);
 
   const addPlayer = useCallback((name: string) => {
@@ -114,7 +120,7 @@ export const useGameState = () => {
     }
 
     // Get secret word pair (for confused role)
-    const { wordA, wordB } = getRandomWordPair(state.selectedCategory);
+    const { wordA, wordB } = getRandomWordPair(state.selectedCategory, customCategories);
     const secretWord = wordA;
     const confusedWord = wordB;
 
@@ -134,6 +140,7 @@ export const useGameState = () => {
     // Assign special roles from civilian pool
     let jesterIndex: number | null = null;
     let confusedIndex: number | null = null;
+    let accompliceIndex: number | null = null;
     
     if (state.settings.jesterEnabled && civilianIndices.length > 0) {
       jesterIndex = civilianIndices.shift()!;
@@ -141,6 +148,10 @@ export const useGameState = () => {
     
     if (state.settings.confusedEnabled && civilianIndices.length > 0) {
       confusedIndex = civilianIndices.shift()!;
+    }
+
+    if (state.settings.accompliceEnabled && civilianIndices.length > 0) {
+      accompliceIndex = civilianIndices.shift()!;
     }
 
     const playersWithRoles = state.players.map((player, index) => {
@@ -154,6 +165,8 @@ export const useGameState = () => {
         role = 'jester';
       } else if (index === confusedIndex) {
         role = 'confused';
+      } else if (index === accompliceIndex) {
+        role = 'accomplice';
       }
       
       return {
@@ -162,6 +175,10 @@ export const useGameState = () => {
         hasSeenCard: false,
       };
     });
+
+    // Get imposter name for accomplice
+    const imposterPlayer = playersWithRoles.find(p => p.role === 'imposter');
+    const imposterName = imposterPlayer?.name || null;
 
     // Shuffle player order for passing
     const shuffledPlayers = [...playersWithRoles].sort(() => Math.random() - 0.5);
@@ -175,6 +192,8 @@ export const useGameState = () => {
       currentPlayerIndex: 0,
       isTrollRound,
       trollWord,
+      imposterName,
+      votes: {},
     }));
   }, [state.selectedCategory, state.players, state.settings]);
 
@@ -224,6 +243,14 @@ export const useGameState = () => {
     setState(prev => ({ ...prev, phase: 'voting' }));
   }, []);
 
+  const setVotes = useCallback((votes: Record<string, string>) => {
+    setState(prev => ({ ...prev, votes }));
+  }, []);
+
+  const goToResults = useCallback(() => {
+    setState(prev => ({ ...prev, phase: 'results' as GamePhase }));
+  }, []);
+
   const resetGame = useCallback(() => {
     setState(prev => ({
       ...initialState,
@@ -251,6 +278,8 @@ export const useGameState = () => {
     revealCard,
     hideCard,
     goToVoting,
+    setVotes,
+    goToResults,
     resetGame,
     fullReset,
   };

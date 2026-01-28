@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, ChevronLeft, Sun, Moon, Volume2, VolumeX, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useGameState } from '@/hooks/useGameState';
+import { useCustomCategories } from '@/hooks/useCustomCategories';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
 import { useTheme } from '@/hooks/useTheme';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -15,8 +16,10 @@ import { CardReveal } from '@/components/game/CardReveal';
 import { ActiveGameScreen } from '@/components/game/ActiveGameScreen';
 import { RoundStarterScreen } from '@/components/game/RoundStarterScreen';
 import { InstallPrompt } from '@/components/game/InstallPrompt';
+import { VotingScreen, VotingResults } from '@/components/game/VotingScreen';
 
 const ImposterGame = () => {
+  const { customCategories } = useCustomCategories();
   const {
     state,
     currentPlayer,
@@ -29,14 +32,16 @@ const ImposterGame = () => {
     markPlayerSeen,
     revealCard,
     hideCard,
+    setVotes,
     resetGame,
-  } = useGameState();
+  } = useGameState(customCategories);
 
   const soundEffects = useSoundEffects();
   const { theme, toggleTheme } = useTheme();
   const { vibrate } = useHaptics();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showVotingResults, setShowVotingResults] = useState(false);
 
   // Set global sound instance for other components
   useEffect(() => {
@@ -62,6 +67,9 @@ const ImposterGame = () => {
     if (currentPlayer?.role === 'imposter') {
       soundEffects.playSound('imposter');
       vibrate('heavy');
+    } else if (currentPlayer?.role === 'accomplice') {
+      soundEffects.playSound('imposter');
+      vibrate('heavy');
     } else {
       soundEffects.playSound('reveal');
       vibrate('medium');
@@ -77,6 +85,30 @@ const ImposterGame = () => {
   const handleStartRound = () => {
     vibrate('success');
     setPhase('playing');
+  };
+
+  const handleGoToVoting = () => {
+    vibrate('medium');
+    setPhase('voting');
+  };
+
+  const handleVotingComplete = (votes: Record<string, string>) => {
+    setVotes(votes);
+    setShowVotingResults(true);
+  };
+
+  const handleSkipVoting = () => {
+    setPhase('results');
+  };
+
+  const handleRevealRoles = () => {
+    setShowVotingResults(false);
+    setPhase('results');
+  };
+
+  const handleNewRound = () => {
+    setShowVotingResults(false);
+    resetGame();
   };
 
   const canStart = state.players.length >= 3 && state.selectedCategory;
@@ -261,6 +293,7 @@ const ImposterGame = () => {
               showHint={state.settings.imposterHint}
               isTrollRound={state.isTrollRound}
               trollWord={state.trollWord}
+              imposterName={state.imposterName}
               onHide={handleMarkSeen}
             />
           </motion.div>
@@ -282,7 +315,7 @@ const ImposterGame = () => {
         )}
 
         {/* Active Game Phase */}
-        {(state.phase === 'playing' || state.phase === 'voting') && (
+        {state.phase === 'playing' && (
           <motion.div
             key="playing"
             initial={{ opacity: 0 }}
@@ -295,8 +328,66 @@ const ImposterGame = () => {
               timerDuration={state.settings.timerDuration}
               isTrollRound={state.isTrollRound}
               secretWord={state.secretWord}
-              onVote={() => setPhase('voting')}
-              onNewRound={resetGame}
+              confusedWord={state.confusedWord}
+              onVote={handleGoToVoting}
+              onNewRound={handleNewRound}
+              onSkipToReveal={handleSkipVoting}
+              showResults={false}
+            />
+          </motion.div>
+        )}
+
+        {/* Voting Phase */}
+        {state.phase === 'voting' && !showVotingResults && (
+          <motion.div
+            key="voting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <VotingScreen
+              players={state.players}
+              onComplete={handleVotingComplete}
+              onSkip={handleSkipVoting}
+            />
+          </motion.div>
+        )}
+
+        {/* Voting Results */}
+        {state.phase === 'voting' && showVotingResults && (
+          <motion.div
+            key="voting-results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <VotingResults
+              players={state.players}
+              votes={state.votes}
+              onRevealRoles={handleRevealRoles}
+            />
+          </motion.div>
+        )}
+
+        {/* Results Phase */}
+        {state.phase === 'results' && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ActiveGameScreen
+              players={state.players}
+              timerEnabled={false}
+              timerDuration={0}
+              isTrollRound={state.isTrollRound}
+              secretWord={state.secretWord}
+              confusedWord={state.confusedWord}
+              onVote={() => {}}
+              onNewRound={handleNewRound}
+              onSkipToReveal={() => {}}
+              showResults={true}
             />
           </motion.div>
         )}
