@@ -92,9 +92,9 @@ export const CardReveal = ({
     onHide();
   };
 
-  // Category header component - shows for civilians, confused, and accomplice
+  // Category header component - shows for everyone
   const CategoryHeader = () => {
-    if (!category || content.type === 'imposter' || content.type === 'jester') {
+    if (!category) {
       return null;
     }
     return (
