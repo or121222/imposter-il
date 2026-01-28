@@ -326,6 +326,7 @@ const ImposterGame = () => {
               trollWord={state.trollWord}
               imposterName={state.imposterName}
               onHide={handleMarkSeen}
+              customCategories={customCategories}
             />
           </motion.div>
         )}

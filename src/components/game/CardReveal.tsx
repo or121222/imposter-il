@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Skull, Sparkles, Laugh, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Skull, Sparkles, Laugh, UserPlus, Folder } from 'lucide-react';
 import type { Player } from '@/hooks/useGameState';
-import { gameCategories } from '@/data/gameCategories';
+import { gameCategories, type Category } from '@/data/gameCategories';
 
 interface CardRevealProps {
   player: Player;
@@ -13,6 +13,7 @@ interface CardRevealProps {
   trollWord: string | null;
   imposterName: string | null;
   onHide: () => void;
+  customCategories?: Category[];
 }
 
 export const CardReveal = ({ 
@@ -24,9 +25,11 @@ export const CardReveal = ({
   isTrollRound,
   trollWord,
   imposterName,
-  onHide 
+  onHide,
+  customCategories = [],
 }: CardRevealProps) => {
-  const category = gameCategories.find(c => c.id === categoryId);
+  const allCategories = [...gameCategories, ...customCategories];
+  const category = allCategories.find(c => c.id === categoryId);
   const { role } = player;
 
   // Determine what word to display based on role
@@ -50,6 +53,43 @@ export const CardReveal = ({
   };
 
   const content = getDisplayContent();
+
+  // Category header component - shows for civilians, confused, and accomplice
+  const CategoryHeader = () => {
+    if (!category || content.type === 'imposter' || content.type === 'jester') {
+      return null;
+    }
+
+    return (
+      <motion.div
+        className="mb-6"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, type: 'spring', damping: 20 }}
+      >
+        <motion.div 
+          className="relative inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border border-primary/20"
+          animate={{
+            boxShadow: [
+              '0 0 15px hsl(var(--primary) / 0.1)',
+              '0 0 25px hsl(var(--primary) / 0.2)',
+              '0 0 15px hsl(var(--primary) / 0.1)',
+            ],
+          }}
+          transition={{ duration: 3, repeat: Infinity }}
+        >
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer" />
+          <Folder className="w-5 h-5 text-primary" />
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground font-medium">קטגוריה</p>
+            <p className="text-lg font-black text-gradient-primary">
+              {category.emoji} {category.name}
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
 
   const renderCard = () => {
     if (content.type === 'imposter') {
@@ -288,6 +328,9 @@ export const CardReveal = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
+      {/* Category Header - Above the card */}
+      <CategoryHeader />
+
       <motion.div
         className="glass-card-strong p-8 max-w-sm w-full text-center space-y-6"
         initial={{ rotateY: 90, opacity: 0 }}
