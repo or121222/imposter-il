@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Skull, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Skull, Sparkles, Laugh, HelpCircle } from 'lucide-react';
 import type { Player } from '@/hooks/useGameState';
 import { gameCategories } from '@/data/gameCategories';
 
 interface CardRevealProps {
   player: Player;
   secretWord: string;
+  confusedWord: string;
   categoryId: string | null;
   showHint: boolean;
   isTrollRound: boolean;
@@ -16,6 +17,7 @@ interface CardRevealProps {
 export const CardReveal = ({ 
   player, 
   secretWord, 
+  confusedWord,
   categoryId, 
   showHint, 
   isTrollRound,
@@ -23,10 +25,196 @@ export const CardReveal = ({
   onHide 
 }: CardRevealProps) => {
   const category = gameCategories.find(c => c.id === categoryId);
-  const isImposter = player.isImposter;
+  const { role } = player;
 
-  // In troll mode, everyone sees the troll word
-  const displayWord = isTrollRound ? trollWord : (isImposter ? null : secretWord);
+  // Determine what word to display based on role
+  const getDisplayContent = () => {
+    if (isTrollRound) {
+      return { word: trollWord, type: 'troll' as const };
+    }
+    
+    switch (role) {
+      case 'imposter':
+        return { word: null, type: 'imposter' as const };
+      case 'jester':
+        return { word: null, type: 'jester' as const };
+      case 'confused':
+        return { word: confusedWord, type: 'confused' as const };
+      default:
+        return { word: secretWord, type: 'civilian' as const };
+    }
+  };
+
+  const content = getDisplayContent();
+
+  const renderCard = () => {
+    if (content.type === 'imposter') {
+      return (
+        <motion.div
+          className="space-y-4"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <motion.div
+            className="mx-auto w-24 h-24 rounded-full bg-secondary/20 flex items-center justify-center"
+            animate={{ 
+              boxShadow: [
+                '0 0 20px hsl(var(--secondary) / 0.3)',
+                '0 0 40px hsl(var(--secondary) / 0.5)',
+                '0 0 20px hsl(var(--secondary) / 0.3)',
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Skull className="w-12 h-12 text-secondary" />
+          </motion.div>
+
+          <h2 className="word-reveal-imposter">
+            אתה המתחזה! 🕵️
+          </h2>
+
+          {showHint && category && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="p-3 rounded-xl bg-secondary/10 border border-secondary/20"
+            >
+              <p className="text-sm text-muted-foreground">רמז: הקטגוריה היא</p>
+              <p className="font-bold text-secondary">{category.emoji} {category.name}</p>
+            </motion.div>
+          )}
+
+          {!showHint && (
+            <p className="text-muted-foreground text-sm">
+              נסה לגלות על מה מדברים... בלי להיתפס!
+            </p>
+          )}
+        </motion.div>
+      );
+    }
+
+    if (content.type === 'jester') {
+      return (
+        <motion.div
+          className="space-y-4"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <motion.div
+            className="mx-auto w-24 h-24 rounded-full bg-amber-500/20 flex items-center justify-center"
+            animate={{ 
+              boxShadow: [
+                '0 0 20px rgba(245, 158, 11, 0.3)',
+                '0 0 40px rgba(245, 158, 11, 0.5)',
+                '0 0 20px rgba(245, 158, 11, 0.3)',
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Laugh className="w-12 h-12 text-amber-500" />
+          </motion.div>
+
+          <h2 className="text-3xl font-black text-amber-500">
+            אתה הג'וקר! 🃏
+          </h2>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"
+          >
+            <p className="text-sm text-muted-foreground">המטרה שלך:</p>
+            <p className="font-bold text-amber-500">לגרום להם להצביע עליך!</p>
+          </motion.div>
+
+          <p className="text-muted-foreground text-sm">
+            תהיה חשוד, תבלבל אותם, תנצח! 😈
+          </p>
+        </motion.div>
+      );
+    }
+
+    if (content.type === 'confused') {
+      return (
+        <motion.div
+          className="space-y-4"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <motion.div
+            className="mx-auto w-24 h-24 rounded-full bg-purple-500/20 flex items-center justify-center"
+            animate={{ 
+              boxShadow: [
+                '0 0 20px rgba(168, 85, 247, 0.3)',
+                '0 0 40px rgba(168, 85, 247, 0.5)',
+                '0 0 20px rgba(168, 85, 247, 0.3)',
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <HelpCircle className="w-12 h-12 text-purple-500" />
+          </motion.div>
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">המילה שלך היא:</p>
+            <h2 className="text-4xl font-black text-purple-500">
+              {content.word}
+            </h2>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            (אתה לא יודע שאתה המבולבל... 🤫)
+          </p>
+        </motion.div>
+      );
+    }
+
+    // Civilian or troll card
+    return (
+      <motion.div
+        className="space-y-4"
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <motion.div
+          className="mx-auto w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center"
+          animate={{ 
+            boxShadow: [
+              '0 0 20px hsl(var(--primary) / 0.3)',
+              '0 0 40px hsl(var(--primary) / 0.5)',
+              '0 0 20px hsl(var(--primary) / 0.3)',
+            ]
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          {content.type === 'troll' ? (
+            <Sparkles className="w-12 h-12 text-primary" />
+          ) : (
+            <Eye className="w-12 h-12 text-primary" />
+          )}
+        </motion.div>
+
+        <div>
+          <p className="text-sm text-muted-foreground mb-2">המילה שלך היא:</p>
+          <h2 className="word-reveal">
+            {content.word}
+          </h2>
+        </div>
+
+        {content.type === 'troll' && (
+          <p className="text-xs text-muted-foreground">
+            משהו מוזר קורה פה... 🤔
+          </p>
+        )}
+      </motion.div>
+    );
+  };
 
   return (
     <motion.div
@@ -47,90 +235,7 @@ export const CardReveal = ({
         </div>
 
         {/* Card content */}
-        {isImposter && !isTrollRound ? (
-          // Imposter card
-          <motion.div
-            className="space-y-4"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <motion.div
-              className="mx-auto w-24 h-24 rounded-full bg-secondary/20 flex items-center justify-center"
-              animate={{ 
-                boxShadow: [
-                  '0 0 20px hsl(var(--secondary) / 0.3)',
-                  '0 0 40px hsl(var(--secondary) / 0.5)',
-                  '0 0 20px hsl(var(--secondary) / 0.3)',
-                ]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Skull className="w-12 h-12 text-secondary" />
-            </motion.div>
-
-            <h2 className="word-reveal-imposter">
-              אתה המתחזה! 🕵️
-            </h2>
-
-            {showHint && category && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="p-3 rounded-xl bg-secondary/10 border border-secondary/20"
-              >
-                <p className="text-sm text-muted-foreground">רמז: הקטגוריה היא</p>
-                <p className="font-bold text-secondary">{category.emoji} {category.name}</p>
-              </motion.div>
-            )}
-
-            {!showHint && (
-              <p className="text-muted-foreground text-sm">
-                נסה לגלות על מה מדברים... בלי להיתפס!
-              </p>
-            )}
-          </motion.div>
-        ) : (
-          // Regular player card (or troll mode)
-          <motion.div
-            className="space-y-4"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <motion.div
-              className="mx-auto w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center"
-              animate={{ 
-                boxShadow: [
-                  '0 0 20px hsl(var(--primary) / 0.3)',
-                  '0 0 40px hsl(var(--primary) / 0.5)',
-                  '0 0 20px hsl(var(--primary) / 0.3)',
-                ]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              {isTrollRound ? (
-                <Sparkles className="w-12 h-12 text-primary" />
-              ) : (
-                <Eye className="w-12 h-12 text-primary" />
-              )}
-            </motion.div>
-
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">המילה שלך היא:</p>
-              <h2 className="word-reveal">
-                {displayWord}
-              </h2>
-            </div>
-
-            {isTrollRound && (
-              <p className="text-xs text-muted-foreground">
-                משהו מוזר קורה פה... 🤔
-              </p>
-            )}
-          </motion.div>
-        )}
+        {renderCard()}
 
         {/* Hide button */}
         <motion.button

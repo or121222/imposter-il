@@ -48,7 +48,9 @@ export const ActiveGameScreen = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const imposters = players.filter(p => p.isImposter);
+  const imposters = players.filter(p => p.role === 'imposter');
+  const jesters = players.filter(p => p.role === 'jester');
+  const confused = players.filter(p => p.role === 'confused');
 
   const handleRevealResults = () => {
     setShowResults(true);
@@ -117,8 +119,12 @@ export const ActiveGameScreen = ({
             <motion.div
               key={player.id}
               className={`p-3 rounded-xl flex items-center gap-2 transition-colors ${
-                showResults && player.isImposter
+                showResults && player.role === 'imposter'
                   ? 'bg-secondary/20 border-2 border-secondary'
+                  : showResults && player.role === 'jester'
+                  ? 'bg-amber-500/20 border-2 border-amber-500'
+                  : showResults && player.role === 'confused'
+                  ? 'bg-purple-500/20 border-2 border-purple-500'
                   : selectedPlayer === player.id
                   ? 'bg-primary/20 border-2 border-primary'
                   : 'bg-muted/30 border border-transparent'
@@ -132,8 +138,14 @@ export const ActiveGameScreen = ({
                 {index + 1}
               </span>
               <span className="text-sm font-medium truncate">{player.name}</span>
-              {showResults && player.isImposter && (
+              {showResults && player.role === 'imposter' && (
                 <Skull className="w-4 h-4 text-secondary mr-auto" />
+              )}
+              {showResults && player.role === 'jester' && (
+                <span className="text-amber-500 mr-auto">🃏</span>
+              )}
+              {showResults && player.role === 'confused' && (
+                <span className="text-purple-500 mr-auto">😵</span>
               )}
             </motion.div>
           ))}
@@ -175,6 +187,38 @@ export const ActiveGameScreen = ({
                   ))}
                 </div>
               </div>
+
+              {jesters.length > 0 && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-sm text-muted-foreground mb-2">הג'וקר היה:</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {jesters.map(j => (
+                      <span
+                        key={j.id}
+                        className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-500 font-bold"
+                      >
+                        {j.name} 🃏
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {confused.length > 0 && (
+                <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                  <p className="text-sm text-muted-foreground mb-2">המבולבל היה:</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {confused.map(c => (
+                      <span
+                        key={c.id}
+                        className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-500 font-bold"
+                      >
+                        {c.name} 😵
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

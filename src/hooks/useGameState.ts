@@ -1,12 +1,14 @@
 import { useState, useCallback } from 'react';
-import { getRandomWord, getTrollWords } from '@/data/gameCategories';
+import { getRandomWordPair, getTrollWords } from '@/data/gameCategories';
 
 export type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'playing' | 'voting';
+
+export type PlayerRole = 'civilian' | 'imposter' | 'jester' | 'confused';
 
 export interface Player {
   id: string;
   name: string;
-  isImposter: boolean;
+  role: PlayerRole;
   hasSeenCard: boolean;
 }
 
@@ -16,6 +18,8 @@ export interface GameSettings {
   timerDuration: number; // in minutes
   imposterHint: boolean;
   trollMode: boolean;
+  jesterEnabled: boolean;
+  confusedEnabled: boolean;
 }
 
 export interface GameState {
@@ -24,6 +28,7 @@ export interface GameState {
   settings: GameSettings;
   selectedCategory: string | null;
   secretWord: string;
+  confusedWord: string; // Similar word for the confused player
   currentPlayerIndex: number;
   isTrollRound: boolean;
   trollWord: string | null;
@@ -35,6 +40,8 @@ const defaultSettings: GameSettings = {
   timerDuration: 5,
   imposterHint: true,
   trollMode: false,
+  jesterEnabled: false,
+  confusedEnabled: false,
 };
 
 const initialState: GameState = {
@@ -43,6 +50,7 @@ const initialState: GameState = {
   settings: defaultSettings,
   selectedCategory: null,
   secretWord: '',
+  confusedWord: '',
   currentPlayerIndex: 0,
   isTrollRound: false,
   trollWord: null,
@@ -60,7 +68,7 @@ export const useGameState = () => {
         {
           id: Date.now().toString(),
           name: name.trim(),
-          isImposter: false,
+          role: 'civilian',
           hasSeenCard: false,
         }
       ]
@@ -101,21 +109,55 @@ export const useGameState = () => {
       trollWord = trollWords[Math.floor(Math.random() * trollWords.length)];
     }
 
-    // Get secret word
-    const secretWord = getRandomWord(state.selectedCategory);
+    // Get secret word pair (for confused role)
+    const { wordA, wordB } = getRandomWordPair(state.selectedCategory);
+    const secretWord = wordA;
+    const confusedWord = wordB;
 
-    // Assign imposters randomly
+    // Assign roles
     const playerCount = state.players.length;
     const imposterCount = Math.min(state.settings.imposterCount, Math.floor(playerCount / 2));
     
+    // Create shuffled indices for role assignment
     const shuffledIndices = [...Array(playerCount).keys()].sort(() => Math.random() - 0.5);
+    
+    // Assign imposters
     const imposterIndices = new Set(shuffledIndices.slice(0, imposterCount));
+    
+    // Calculate remaining civilian indices (excluding imposters)
+    const civilianIndices = shuffledIndices.slice(imposterCount);
+    
+    // Assign special roles from civilian pool
+    let jesterIndex: number | null = null;
+    let confusedIndex: number | null = null;
+    
+    if (state.settings.jesterEnabled && civilianIndices.length > 0) {
+      jesterIndex = civilianIndices.shift()!;
+    }
+    
+    if (state.settings.confusedEnabled && civilianIndices.length > 0) {
+      confusedIndex = civilianIndices.shift()!;
+    }
 
-    const playersWithRoles = state.players.map((player, index) => ({
-      ...player,
-      isImposter: isTrollRound ? true : imposterIndices.has(index), // In troll round, everyone is "imposter"
-      hasSeenCard: false,
-    }));
+    const playersWithRoles = state.players.map((player, index) => {
+      let role: PlayerRole = 'civilian';
+      
+      if (isTrollRound) {
+        role = 'imposter'; // In troll round, everyone is "imposter"
+      } else if (imposterIndices.has(index)) {
+        role = 'imposter';
+      } else if (index === jesterIndex) {
+        role = 'jester';
+      } else if (index === confusedIndex) {
+        role = 'confused';
+      }
+      
+      return {
+        ...player,
+        role,
+        hasSeenCard: false,
+      };
+    });
 
     // Shuffle player order for passing
     const shuffledPlayers = [...playersWithRoles].sort(() => Math.random() - 0.5);
@@ -125,6 +167,7 @@ export const useGameState = () => {
       phase: 'passing',
       players: shuffledPlayers,
       secretWord,
+      confusedWord,
       currentPlayerIndex: 0,
       isTrollRound,
       trollWord,
@@ -166,7 +209,7 @@ export const useGameState = () => {
   const resetGame = useCallback(() => {
     setState(prev => ({
       ...initialState,
-      players: prev.players.map(p => ({ ...p, isImposter: false, hasSeenCard: false })),
+      players: prev.players.map(p => ({ ...p, role: 'civilian', hasSeenCard: false })),
       settings: prev.settings,
     }));
   }, []);

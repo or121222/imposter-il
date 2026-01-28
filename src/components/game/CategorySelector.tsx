@@ -31,7 +31,7 @@ export const CategorySelector = ({ selectedCategory, onSelectCategory }: Categor
             <div className="text-3xl mb-2">{category.emoji}</div>
             <div className="font-medium text-sm">{category.name}</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {category.words.length} מילים
+              {category.wordPairs.length} מילים
             </div>
           </motion.button>
         ))}
