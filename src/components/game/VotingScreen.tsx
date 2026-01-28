@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Vote, ChevronLeft, BarChart3, Trophy, SkipForward } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { Player } from '@/hooks/useGameState';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 interface VotingScreenProps {
   players: Player[];
@@ -15,16 +16,24 @@ export const VotingScreen = ({ players, onComplete, onSkip }: VotingScreenProps)
   const [votes, setVotes] = useState<Record<string, string>>({});
   const [showPassing, setShowPassing] = useState(true);
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
+  const sounds = useSoundEffects();
 
   const currentVoter = players[currentVoterIndex];
   const otherPlayers = players.filter(p => p.id !== currentVoter.id);
 
   const handleReveal = () => {
+    sounds.playSound('click');
     setShowPassing(false);
+  };
+
+  const handleSelectSuspect = (playerId: string) => {
+    sounds.playSound('tick');
+    setSelectedSuspect(playerId);
   };
 
   const handleVote = () => {
     if (!selectedSuspect) return;
+    sounds.playSound('click');
 
     const newVotes = { ...votes, [currentVoter.id]: selectedSuspect };
     setVotes(newVotes);
@@ -36,6 +45,11 @@ export const VotingScreen = ({ players, onComplete, onSkip }: VotingScreenProps)
     } else {
       onComplete(newVotes);
     }
+  };
+
+  const handleSkip = () => {
+    sounds.playSound('click');
+    onSkip();
   };
 
   if (showPassing) {
@@ -110,7 +124,7 @@ export const VotingScreen = ({ players, onComplete, onSkip }: VotingScreenProps)
         {otherPlayers.map((player, index) => (
           <motion.button
             key={player.id}
-            onClick={() => setSelectedSuspect(player.id)}
+            onClick={() => handleSelectSuspect(player.id)}
             className={`w-full p-4 rounded-xl flex items-center gap-3 transition-all ${
               selectedSuspect === player.id
                 ? 'bg-secondary/30 border-2 border-secondary'
@@ -147,7 +161,7 @@ export const VotingScreen = ({ players, onComplete, onSkip }: VotingScreenProps)
         </motion.button>
 
         <motion.button
-          onClick={onSkip}
+          onClick={handleSkip}
           className="glass-card w-full py-3 rounded-xl flex items-center justify-center gap-2 text-muted-foreground hover:bg-muted/40"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -167,6 +181,8 @@ interface VotingResultsProps {
 }
 
 export const VotingResults = ({ players, votes, onRevealRoles }: VotingResultsProps) => {
+  const sounds = useSoundEffects();
+  
   // Count votes for each player
   const voteCounts: Record<string, number> = {};
   players.forEach(p => { voteCounts[p.id] = 0; });
@@ -184,9 +200,11 @@ export const VotingResults = ({ players, votes, onRevealRoles }: VotingResultsPr
   // Check if imposter was caught
   const imposterCaught = eliminated && (eliminated.role === 'imposter' || eliminated.role === 'accomplice');
 
-  // Fire confetti if imposter was caught
+  // Fire confetti and play success sound if imposter was caught
   useEffect(() => {
     if (imposterCaught) {
+      sounds.playSound('success');
+      
       // Fire multiple confetti bursts
       const duration = 3000;
       const end = Date.now() + duration;
@@ -222,7 +240,12 @@ export const VotingResults = ({ players, votes, onRevealRoles }: VotingResultsPr
 
       frame();
     }
-  }, [imposterCaught]);
+  }, [imposterCaught, sounds]);
+
+  const handleRevealRoles = () => {
+    sounds.playSound('click');
+    onRevealRoles();
+  };
 
   return (
     <motion.div
@@ -301,7 +324,7 @@ export const VotingResults = ({ players, votes, onRevealRoles }: VotingResultsPr
       )}
 
       <motion.button
-        onClick={onRevealRoles}
+        onClick={handleRevealRoles}
         className="btn-neon w-full flex items-center justify-center gap-2"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
