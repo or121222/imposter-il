@@ -70,35 +70,35 @@ const ImposterGame = () => {
       <div className="bg-glow" />
 
       {/* Top controls */}
-      <div className="fixed top-4 left-4 z-50 flex gap-2">
+      <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
+        <HelpModal fixedTrigger={false} />
+
         <motion.button
           onClick={handleToggleSound}
-          className="p-2 rounded-full glass-card hover:bg-muted/40 transition-colors"
+          className="p-3 rounded-full glass-card hover:bg-muted/40 transition-colors"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
           {soundEnabled ? (
-            <Volume2 className="w-5 h-5 text-primary" />
+            <Volume2 className="w-6 h-6 text-primary" />
           ) : (
-            <VolumeX className="w-5 h-5 text-muted-foreground" />
+            <VolumeX className="w-6 h-6 text-muted-foreground" />
           )}
         </motion.button>
+
         <motion.button
           onClick={toggleTheme}
-          className="p-2 rounded-full glass-card hover:bg-muted/40 transition-colors"
+          className="p-3 rounded-full glass-card hover:bg-muted/40 transition-colors"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
           {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-primary" />
+            <Sun className="w-6 h-6 text-primary" />
           ) : (
-            <Moon className="w-5 h-5 text-primary" />
+            <Moon className="w-6 h-6 text-primary" />
           )}
         </motion.button>
       </div>
-
-      {/* Help modal */}
-      <HelpModal />
 
       <AnimatePresence mode="wait">
         {/* Setup Phase */}

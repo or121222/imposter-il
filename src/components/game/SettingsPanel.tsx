@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 import { Settings, Users, Timer, Eye, Zap, ChevronDown, Laugh, HelpCircle } from 'lucide-react';
 import { useState } from 'react';
-import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { VxToggle } from '@/components/ui/vx-toggle';
 import { NumberStepper } from './NumberStepper';
 import type { GameSettings } from '@/hooks/useGameState';
 
@@ -27,13 +27,13 @@ const SettingRow = ({ icon, label, description, highlight, children }: SettingRo
         {icon}
       </div>
       <div className="min-w-0">
-        <span className={`font-medium block ${highlight ? 'text-secondary' : ''}`}>{label}</span>
+        <span className={`font-medium block truncate ${highlight ? 'text-secondary' : ''}`}>{label}</span>
         {description && (
           <p className="text-xs text-muted-foreground truncate">{description}</p>
         )}
       </div>
     </div>
-    <div className="flex-shrink-0 mr-3">
+    <div className="flex-shrink-0">
       {children}
     </div>
   </div>
@@ -106,9 +106,10 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
             label="טיימר"
             description={settings.timerEnabled ? `${settings.timerDuration} דקות` : 'כבוי'}
           >
-            <Switch
-              checked={settings.timerEnabled}
-              onCheckedChange={(checked) => onUpdateSettings({ timerEnabled: checked })}
+            <VxToggle
+              aria-label="טיימר"
+              value={settings.timerEnabled}
+              onValueChange={(value) => onUpdateSettings({ timerEnabled: value })}
             />
           </SettingRow>
           
@@ -140,9 +141,10 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
             description="20% סיכוי שכולם יהיו מתחזים!"
             highlight
           >
-            <Switch
-              checked={settings.trollMode}
-              onCheckedChange={(checked) => onUpdateSettings({ trollMode: checked })}
+            <VxToggle
+              aria-label="מצב טרול"
+              value={settings.trollMode}
+              onValueChange={(value) => onUpdateSettings({ trollMode: value })}
             />
           </SettingRow>
 
@@ -152,9 +154,10 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
             label="הוסף את הג'וקר 🃏"
             description="מנצח אם מצביעים עליו"
           >
-            <Switch
-              checked={settings.jesterEnabled}
-              onCheckedChange={(checked) => onUpdateSettings({ jesterEnabled: checked })}
+            <VxToggle
+              aria-label="הוסף את הג'וקר"
+              value={settings.jesterEnabled}
+              onValueChange={(value) => onUpdateSettings({ jesterEnabled: value })}
             />
           </SettingRow>
 
@@ -164,9 +167,10 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
             label="הוסף את המבולבל 😵"
             description="מקבל מילה דומה"
           >
-            <Switch
-              checked={settings.confusedEnabled}
-              onCheckedChange={(checked) => onUpdateSettings({ confusedEnabled: checked })}
+            <VxToggle
+              aria-label="הוסף את המבולבל"
+              value={settings.confusedEnabled}
+              onValueChange={(value) => onUpdateSettings({ confusedEnabled: value })}
             />
           </SettingRow>
 
@@ -176,9 +180,10 @@ export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: Sett
             label="רמז למתחזה"
             description="המתחזה יראה את שם הקטגוריה"
           >
-            <Switch
-              checked={settings.imposterHint}
-              onCheckedChange={(checked) => onUpdateSettings({ imposterHint: checked })}
+            <VxToggle
+              aria-label="רמז למתחזה"
+              value={settings.imposterHint}
+              onValueChange={(value) => onUpdateSettings({ imposterHint: value })}
             />
           </SettingRow>
         </div>

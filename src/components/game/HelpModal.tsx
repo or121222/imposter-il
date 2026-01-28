@@ -1,8 +1,19 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, X, Skull, Laugh, Users } from 'lucide-react';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
-export const HelpModal = () => {
+interface HelpModalProps {
+  fixedTrigger?: boolean;
+  triggerClassName?: string;
+  triggerIconClassName?: string;
+}
+
+export const HelpModal = ({
+  fixedTrigger = true,
+  triggerClassName,
+  triggerIconClassName,
+}: HelpModalProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -10,11 +21,15 @@ export const HelpModal = () => {
       {/* Trigger button */}
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed top-4 left-4 z-50 p-3 glass-card rounded-full hover:bg-muted/40 transition-colors"
+        className={cn(
+          'p-3 glass-card rounded-full hover:bg-muted/40 transition-colors',
+          fixedTrigger && 'fixed top-4 left-4 z-50',
+          triggerClassName,
+        )}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
-        <HelpCircle className="w-6 h-6 text-primary" />
+        <HelpCircle className={cn('w-6 h-6 text-primary', triggerIconClassName)} />
       </motion.button>
 
       {/* Modal */}
