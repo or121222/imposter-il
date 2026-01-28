@@ -67,6 +67,28 @@ const ImposterGame = () => {
     addOrUpdatePlayer(name);
   };
 
+  // Handle toggling player active/inactive - sync with game players
+  const handleTogglePlayerActive = (playerId: string) => {
+    const player = playerScores.find(p => p.id === playerId);
+    if (!player) return;
+    
+    togglePlayerActive(playerId);
+    
+    // If player is currently active (will be deactivated), remove from game
+    if (player.isActive) {
+      const gamePlayer = state.players.find(p => p.name.toLowerCase() === player.name.toLowerCase());
+      if (gamePlayer) {
+        removePlayer(gamePlayer.id);
+      }
+    } else {
+      // If player is currently inactive (will be activated), add to game
+      const alreadyInGame = state.players.some(p => p.name.toLowerCase() === player.name.toLowerCase());
+      if (!alreadyInGame) {
+        addPlayer(player.name);
+      }
+    }
+  };
+
   const handleToggleSound = () => {
     const newState = !soundEnabled;
     setSoundEnabled(newState);
@@ -187,7 +209,7 @@ const ImposterGame = () => {
               {/* Score Board */}
               <ScoreBoard
                 playerScores={playerScores}
-                onToggleActive={togglePlayerActive}
+                onToggleActive={handleTogglePlayerActive}
                 onRemovePlayer={removePlayerScore}
                 onResetScores={resetScores}
               />
