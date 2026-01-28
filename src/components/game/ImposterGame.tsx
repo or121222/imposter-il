@@ -1,6 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, ChevronLeft } from 'lucide-react';
+import { Play, ChevronLeft, Sun, Moon, Volume2, VolumeX } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useGameState } from '@/hooks/useGameState';
+import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
+import { useTheme } from '@/hooks/useTheme';
 import { GameLogo } from '@/components/game/GameLogo';
 import { PlayerInput } from '@/components/game/PlayerInput';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
@@ -26,6 +29,38 @@ const ImposterGame = () => {
     resetGame,
   } = useGameState();
 
+  const soundEffects = useSoundEffects();
+  const { theme, toggleTheme } = useTheme();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Set global sound instance for other components
+  useEffect(() => {
+    setGlobalSoundEffects(soundEffects);
+  }, [soundEffects]);
+
+  const handleToggleSound = () => {
+    const newState = !soundEnabled;
+    setSoundEnabled(newState);
+    soundEffects.toggleSound(newState);
+    if (newState) {
+      soundEffects.playSound('click');
+    }
+  };
+
+  const handleStartGame = () => {
+    soundEffects.playSound('success');
+    startGame();
+  };
+
+  const handleRevealCard = () => {
+    if (currentPlayer?.role === 'imposter') {
+      soundEffects.playSound('imposter');
+    } else {
+      soundEffects.playSound('reveal');
+    }
+    revealCard();
+  };
+
   const canStart = state.players.length >= 3 && state.selectedCategory;
   const maxImposters = Math.floor(state.players.length / 2) || 1;
 
@@ -33,6 +68,34 @@ const ImposterGame = () => {
     <div className="min-h-screen relative overflow-hidden">
       {/* Background glow effect */}
       <div className="bg-glow" />
+
+      {/* Top controls */}
+      <div className="fixed top-4 left-4 z-50 flex gap-2">
+        <motion.button
+          onClick={handleToggleSound}
+          className="p-2 rounded-full glass-card hover:bg-muted/40 transition-colors"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          {soundEnabled ? (
+            <Volume2 className="w-5 h-5 text-primary" />
+          ) : (
+            <VolumeX className="w-5 h-5 text-muted-foreground" />
+          )}
+        </motion.button>
+        <motion.button
+          onClick={toggleTheme}
+          className="p-2 rounded-full glass-card hover:bg-muted/40 transition-colors"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-5 h-5 text-primary" />
+          ) : (
+            <Moon className="w-5 h-5 text-primary" />
+          )}
+        </motion.button>
+      </div>
 
       {/* Help modal */}
       <HelpModal />
@@ -117,7 +180,7 @@ const ImposterGame = () => {
                 </motion.button>
 
                 <motion.button
-                  onClick={startGame}
+                  onClick={handleStartGame}
                   disabled={!canStart}
                   className={`btn-neon flex-1 flex items-center justify-center gap-2 ${
                     !canStart ? 'opacity-50 cursor-not-allowed' : 'pulse-glow'
@@ -143,7 +206,7 @@ const ImposterGame = () => {
           >
             <PassingScreen
               player={currentPlayer}
-              onReveal={revealCard}
+              onReveal={handleRevealCard}
             />
           </motion.div>
         )}
