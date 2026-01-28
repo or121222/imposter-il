@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, X, Skull, Laugh, Users } from 'lucide-react';
+import { HelpCircle, X, Skull, Laugh, Users, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -111,6 +111,19 @@ export const HelpModal = ({
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
                         לא יודע את המילה הסודית. המטרה שלו להישאר מוסתר או לנחש את המילה בסוף המשחק.
+                      </p>
+                    </div>
+
+                    {/* Accomplice */}
+                    <div className="p-4 rounded-xl bg-secondary/10 border border-secondary/20">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
+                          <UserPlus className="w-5 h-5 text-secondary" />
+                        </div>
+                        <h4 className="font-bold text-secondary">הסייען 🤝</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground text-right">
+                        אתה בצד של המתחזה. אתה יודע את המילה ומי המתחזה. עזור לו לנצח בלי שירגישו!
                       </p>
                     </div>
 

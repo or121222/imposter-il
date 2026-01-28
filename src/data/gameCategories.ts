@@ -350,8 +350,9 @@ export const gameCategories: Category[] = [
   }
 ];
 
-export const getRandomWordPair = (categoryId: string): { wordA: string; wordB: string } => {
-  const category = gameCategories.find(c => c.id === categoryId);
+export const getRandomWordPair = (categoryId: string, customCategories: Category[] = []): { wordA: string; wordB: string } => {
+  const allCategories = [...gameCategories, ...customCategories];
+  const category = allCategories.find(c => c.id === categoryId);
   if (!category || category.wordPairs.length === 0) {
     return { wordA: "", wordB: "" };
   }

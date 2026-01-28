@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Timer, Users, Vote, RotateCcw, Skull, Trophy, AlertTriangle } from 'lucide-react';
+import { Timer, Users, Vote, RotateCcw, Skull, Trophy, AlertTriangle, UserPlus } from 'lucide-react';
 import type { Player } from '@/hooks/useGameState';
 
 interface ActiveGameScreenProps {
@@ -9,8 +9,11 @@ interface ActiveGameScreenProps {
   timerDuration: number; // in minutes
   isTrollRound: boolean;
   secretWord: string;
+  confusedWord: string;
   onVote: () => void;
   onNewRound: () => void;
+  onSkipToReveal: () => void;
+  showResults: boolean;
 }
 
 export const ActiveGameScreen = ({
@@ -19,11 +22,14 @@ export const ActiveGameScreen = ({
   timerDuration,
   isTrollRound,
   secretWord,
+  confusedWord,
   onVote,
   onNewRound,
+  onSkipToReveal,
+  showResults: initialShowResults,
 }: ActiveGameScreenProps) => {
   const [timeLeft, setTimeLeft] = useState(timerDuration * 60);
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(initialShowResults);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +48,10 @@ export const ActiveGameScreen = ({
     return () => clearInterval(interval);
   }, [timerEnabled, timeLeft]);
 
+  useEffect(() => {
+    setShowResults(initialShowResults);
+  }, [initialShowResults]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -51,6 +61,7 @@ export const ActiveGameScreen = ({
   const imposters = players.filter(p => p.role === 'imposter');
   const jesters = players.filter(p => p.role === 'jester');
   const confused = players.filter(p => p.role === 'confused');
+  const accomplices = players.filter(p => p.role === 'accomplice');
 
   const handleRevealResults = () => {
     setShowResults(true);
@@ -119,7 +130,7 @@ export const ActiveGameScreen = ({
             <motion.div
               key={player.id}
               className={`p-3 rounded-xl flex items-center gap-2 transition-colors ${
-                showResults && player.role === 'imposter'
+                showResults && (player.role === 'imposter' || player.role === 'accomplice')
                   ? 'bg-secondary/20 border-2 border-secondary'
                   : showResults && player.role === 'jester'
                   ? 'bg-amber-500/20 border-2 border-amber-500'
@@ -140,6 +151,9 @@ export const ActiveGameScreen = ({
               <span className="text-sm font-medium truncate">{player.name}</span>
               {showResults && player.role === 'imposter' && (
                 <Skull className="w-4 h-4 text-secondary mr-auto" />
+              )}
+              {showResults && player.role === 'accomplice' && (
+                <UserPlus className="w-4 h-4 text-secondary mr-auto" />
               )}
               {showResults && player.role === 'jester' && (
                 <span className="text-amber-500 mr-auto">🃏</span>
@@ -172,6 +186,13 @@ export const ActiveGameScreen = ({
                 <p className="text-2xl font-black text-gradient-primary">{secretWord}</p>
               </div>
 
+              {confusedWord && confusedWord !== secretWord && confused.length > 0 && (
+                <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                  <p className="text-sm text-muted-foreground mb-1">המילה של המבולבל הייתה:</p>
+                  <p className="text-xl font-black text-purple-500">{confusedWord}</p>
+                </div>
+              )}
+
               <div className="p-4 rounded-xl bg-secondary/10 border border-secondary/30">
                 <p className="text-sm text-muted-foreground mb-2">
                   {imposters.length > 1 ? 'המתחזים היו:' : 'המתחזה היה/הייתה:'}
@@ -187,6 +208,22 @@ export const ActiveGameScreen = ({
                   ))}
                 </div>
               </div>
+
+              {accomplices.length > 0 && (
+                <div className="p-4 rounded-xl bg-secondary/10 border border-secondary/30">
+                  <p className="text-sm text-muted-foreground mb-2">הסייען היה:</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {accomplices.map(a => (
+                      <span
+                        key={a.id}
+                        className="px-3 py-1 rounded-full bg-secondary/20 text-secondary font-bold"
+                      >
+                        {a.name} 🤝
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {jesters.length > 0 && (
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
@@ -227,15 +264,25 @@ export const ActiveGameScreen = ({
       {/* Action buttons */}
       <div className="space-y-3">
         {!showResults ? (
-          <motion.button
-            onClick={handleRevealResults}
-            className="btn-neon-magenta w-full flex items-center justify-center gap-2"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Vote className="w-5 h-5" />
-            <span>סיום והצבעה</span>
-          </motion.button>
+          <>
+            <motion.button
+              onClick={onVote}
+              className="btn-neon-magenta w-full flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Vote className="w-5 h-5" />
+              <span>הצבעה</span>
+            </motion.button>
+            <motion.button
+              onClick={handleRevealResults}
+              className="glass-card w-full py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-muted/40"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <span>דלג וחשוף תפקידים</span>
+            </motion.button>
+          </>
         ) : (
           <motion.button
             onClick={onNewRound}

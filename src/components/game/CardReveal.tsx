@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Skull, Sparkles, Laugh, HelpCircle } from 'lucide-react';
+import { Eye, EyeOff, Skull, Sparkles, Laugh, UserPlus } from 'lucide-react';
 import type { Player } from '@/hooks/useGameState';
 import { gameCategories } from '@/data/gameCategories';
 
@@ -11,6 +11,7 @@ interface CardRevealProps {
   showHint: boolean;
   isTrollRound: boolean;
   trollWord: string | null;
+  imposterName: string | null;
   onHide: () => void;
 }
 
@@ -22,6 +23,7 @@ export const CardReveal = ({
   showHint, 
   isTrollRound,
   trollWord,
+  imposterName,
   onHide 
 }: CardRevealProps) => {
   const category = gameCategories.find(c => c.id === categoryId);
@@ -40,6 +42,8 @@ export const CardReveal = ({
         return { word: null, type: 'jester' as const };
       case 'confused':
         return { word: confusedWord, type: 'confused' as const };
+      case 'accomplice':
+        return { word: secretWord, type: 'accomplice' as const };
       default:
         return { word: secretWord, type: 'civilian' as const };
     }
@@ -145,6 +149,58 @@ export const CardReveal = ({
 
           <p className="text-muted-foreground text-sm">
             תהיה חשוד, תבלבל אותם, תנצח! 😈
+          </p>
+        </motion.div>
+      );
+    }
+
+    if (content.type === 'accomplice') {
+      return (
+        <motion.div
+          className="space-y-4"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <motion.div
+            className="mx-auto w-24 h-24 rounded-full bg-secondary/20 flex items-center justify-center"
+            animate={{ 
+              boxShadow: [
+                '0 0 20px hsl(var(--secondary) / 0.3)',
+                '0 0 40px hsl(var(--secondary) / 0.5)',
+                '0 0 20px hsl(var(--secondary) / 0.3)',
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <UserPlus className="w-12 h-12 text-secondary" />
+          </motion.div>
+
+          <h2 className="text-3xl font-black text-secondary">
+            אתה הסייען! 🤝
+          </h2>
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">המילה הסודית היא:</p>
+            <h2 className="word-reveal">
+              {content.word}
+            </h2>
+          </div>
+
+          {imposterName && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="p-3 rounded-xl bg-secondary/10 border border-secondary/20"
+            >
+              <p className="text-sm text-muted-foreground">השותף שלך הוא:</p>
+              <p className="font-bold text-secondary text-lg">{imposterName}</p>
+            </motion.div>
+          )}
+
+          <p className="text-muted-foreground text-sm">
+            עזור למתחזה לנצח בלי שירגישו!
           </p>
         </motion.div>
       );

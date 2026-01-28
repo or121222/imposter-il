@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
-import { Settings, Users, Timer, Eye, Zap, ChevronDown, Laugh, HelpCircle, UserX } from 'lucide-react';
+import { Settings, Users, Timer, Eye, Zap, ChevronDown, UserX, Users2 } from 'lucide-react';
 import { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { VxToggle } from '@/components/ui/vx-toggle';
 import { NumberStepper } from './NumberStepper';
+import { RoleManagerModal } from './RoleManagerModal';
 import type { GameSettings } from '@/hooks/useGameState';
 
 interface SettingsPanelProps {
@@ -41,165 +42,177 @@ const SettingRow = ({ icon, label, description, highlight, children }: SettingRo
 
 export const SettingsPanel = ({ settings, onUpdateSettings, maxImposters }: SettingsPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showRoleManager, setShowRoleManager] = useState(false);
+
+  // Count enabled special roles
+  const enabledRoles = [
+    settings.jesterEnabled,
+    settings.confusedEnabled,
+    settings.accompliceEnabled,
+  ].filter(Boolean).length;
 
   return (
-    <motion.div
-      className="glass-card overflow-hidden"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.1 }}
-    >
-      {/* Header - Always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-secondary/10">
-            <Settings className="w-5 h-5 text-secondary" />
-          </div>
-          <div className="text-right">
-            <h3 className="font-bold text-lg">הגדרות משחק</h3>
-            <p className="text-sm text-muted-foreground">
-              {settings.imposterCount} מתחזים • {settings.timerEnabled ? `${settings.timerDuration} דקות` : 'ללא טיימר'}
-            </p>
-          </div>
-        </div>
-        <motion.div
-          animate={{ rotate: isExpanded ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
-        </motion.div>
-      </button>
-
-      {/* Expandable content */}
+    <>
       <motion.div
-        initial={false}
-        animate={{
-          height: isExpanded ? 'auto' : 0,
-          opacity: isExpanded ? 1 : 0,
-        }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className="overflow-hidden"
+        className="glass-card overflow-hidden"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
       >
-        <div className="p-4 pt-0 space-y-3">
-          {/* Imposter Count - Custom Stepper */}
-          <div className="p-4 rounded-xl bg-muted/10">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-4 h-4 text-primary" />
-              <span className="font-medium">מספר מתחזים</span>
+        {/* Header - Always visible */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-secondary/10">
+              <Settings className="w-5 h-5 text-secondary" />
             </div>
-            <div className="flex justify-center">
-              <NumberStepper
-                value={settings.imposterCount}
-                onChange={(value) => onUpdateSettings({ imposterCount: value })}
-                min={1}
-                max={Math.max(1, maxImposters)}
-              />
+            <div className="text-right">
+              <h3 className="font-bold text-lg">הגדרות משחק</h3>
+              <p className="text-sm text-muted-foreground">
+                {settings.imposterCount} מתחזים • {settings.timerEnabled ? `${settings.timerDuration} דקות` : 'ללא טיימר'}
+              </p>
             </div>
           </div>
-
-          {/* Timer Toggle */}
-          <SettingRow
-            icon={<Timer className="w-4 h-4 text-primary" />}
-            label="טיימר"
-            description={settings.timerEnabled ? `${settings.timerDuration} דקות` : 'כבוי'}
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
           >
-            <VxToggle
-              aria-label="טיימר"
-              value={settings.timerEnabled}
-              onValueChange={(value) => onUpdateSettings({ timerEnabled: value })}
-            />
-          </SettingRow>
-          
-          {settings.timerEnabled && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="px-4 pb-2"
-            >
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-muted-foreground">משך הסיבוב</span>
-                <span className="text-primary font-bold">{settings.timerDuration} דקות</span>
+            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          </motion.div>
+        </button>
+
+        {/* Expandable content */}
+        <motion.div
+          initial={false}
+          animate={{
+            height: isExpanded ? 'auto' : 0,
+            opacity: isExpanded ? 1 : 0,
+          }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="overflow-hidden"
+        >
+          <div className="p-4 pt-0 space-y-3">
+            {/* Imposter Count - Custom Stepper */}
+            <div className="p-4 rounded-xl bg-muted/10">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-4 h-4 text-primary" />
+                <span className="font-medium">מספר מתחזים</span>
               </div>
-              <Slider
-                value={[settings.timerDuration]}
-                onValueChange={([value]) => onUpdateSettings({ timerDuration: value })}
-                min={1}
-                max={15}
-                step={1}
+              <div className="flex justify-center">
+                <NumberStepper
+                  value={settings.imposterCount}
+                  onChange={(value) => onUpdateSettings({ imposterCount: value })}
+                  min={1}
+                  max={Math.max(1, maxImposters)}
+                />
+              </div>
+            </div>
+
+            {/* Timer Toggle */}
+            <SettingRow
+              icon={<Timer className="w-4 h-4 text-primary" />}
+              label="טיימר"
+              description={settings.timerEnabled ? `${settings.timerDuration} דקות` : 'כבוי'}
+            >
+              <VxToggle
+                aria-label="טיימר"
+                value={settings.timerEnabled}
+                onValueChange={(value) => onUpdateSettings({ timerEnabled: value })}
               />
-            </motion.div>
-          )}
+            </SettingRow>
+            
+            {settings.timerEnabled && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="px-4 pb-2"
+              >
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-muted-foreground">משך הסיבוב</span>
+                  <span className="text-primary font-bold">{settings.timerDuration} דקות</span>
+                </div>
+                <Slider
+                  value={[settings.timerDuration]}
+                  onValueChange={([value]) => onUpdateSettings({ timerDuration: value })}
+                  min={1}
+                  max={15}
+                  step={1}
+                />
+              </motion.div>
+            )}
 
-          {/* Troll Mode */}
-          <SettingRow
-            icon={<Zap className="w-4 h-4 text-secondary" />}
-            label="מצב טרול 🤪"
-            description="20% סיכוי שכולם יהיו מתחזים!"
-            highlight
-          >
-            <VxToggle
-              aria-label="מצב טרול"
-              value={settings.trollMode}
-              onValueChange={(value) => onUpdateSettings({ trollMode: value })}
-            />
-          </SettingRow>
+            {/* Troll Mode */}
+            <SettingRow
+              icon={<Zap className="w-4 h-4 text-secondary" />}
+              label="מצב טרול 🤪"
+              description="20% סיכוי שכולם יהיו מתחזים!"
+              highlight
+            >
+              <VxToggle
+                aria-label="מצב טרול"
+                value={settings.trollMode}
+                onValueChange={(value) => onUpdateSettings({ trollMode: value })}
+              />
+            </SettingRow>
 
-          {/* Jester Toggle */}
-          <SettingRow
-            icon={<Laugh className="w-4 h-4 text-primary" />}
-            label="הוסף את הג'וקר 🃏"
-            description="מנצח אם מצביעים עליו"
-          >
-            <VxToggle
-              aria-label="הוסף את הג'וקר"
-              value={settings.jesterEnabled}
-              onValueChange={(value) => onUpdateSettings({ jesterEnabled: value })}
-            />
-          </SettingRow>
+            {/* Role Manager Button */}
+            <motion.button
+              onClick={() => setShowRoleManager(true)}
+              className="w-full p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between hover:bg-primary/20 transition-colors"
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <Users2 className="w-4 h-4 text-primary" />
+                </div>
+                <div className="text-right">
+                  <span className="font-medium block">ניהול תפקידים מיוחדים</span>
+                  <p className="text-xs text-muted-foreground">
+                    {enabledRoles > 0 ? `${enabledRoles} תפקידים פעילים` : 'ג\'וקר, מבולבל, סייען'}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown className="w-5 h-5 text-muted-foreground -rotate-90" />
+            </motion.button>
 
-          {/* Confused Toggle */}
-          <SettingRow
-            icon={<HelpCircle className="w-4 h-4 text-primary" />}
-            label="הוסף את המבולבל 😵"
-            description="מקבל מילה דומה"
-          >
-            <VxToggle
-              aria-label="הוסף את המבולבל"
-              value={settings.confusedEnabled}
-              onValueChange={(value) => onUpdateSettings({ confusedEnabled: value })}
-            />
-          </SettingRow>
+            <SettingRow
+              icon={<Eye className="w-4 h-4 text-primary" />}
+              label="רמז למתחזה"
+              description="המתחזה יראה את שם הקטגוריה"
+            >
+              <VxToggle
+                aria-label="רמז למתחזה"
+                value={settings.imposterHint}
+                onValueChange={(value) => onUpdateSettings({ imposterHint: value })}
+              />
+            </SettingRow>
 
-          <SettingRow
-            icon={<Eye className="w-4 h-4 text-primary" />}
-            label="רמז למתחזה"
-            description="המתחזה יראה את שם הקטגוריה"
-          >
-            <VxToggle
-              aria-label="רמז למתחזה"
-              value={settings.imposterHint}
-              onValueChange={(value) => onUpdateSettings({ imposterHint: value })}
-            />
-          </SettingRow>
-
-          {/* Imposter Never Starts */}
-          <SettingRow
-            icon={<UserX className="w-4 h-4 text-primary" />}
-            label="המתחזה בחיים לא מתחיל"
-            description="המתחזה לא יתחיל ראשון"
-          >
-            <VxToggle
-              aria-label="המתחזה בחיים לא מתחיל"
-              value={settings.imposterNeverStarts}
-              onValueChange={(value) => onUpdateSettings({ imposterNeverStarts: value })}
-            />
-          </SettingRow>
-        </div>
+            {/* Imposter Never Starts */}
+            <SettingRow
+              icon={<UserX className="w-4 h-4 text-primary" />}
+              label="המתחזה בחיים לא מתחיל"
+              description="המתחזה לא יתחיל ראשון"
+            >
+              <VxToggle
+                aria-label="המתחזה בחיים לא מתחיל"
+                value={settings.imposterNeverStarts}
+                onValueChange={(value) => onUpdateSettings({ imposterNeverStarts: value })}
+              />
+            </SettingRow>
+          </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
+
+      {/* Role Manager Modal */}
+      <RoleManagerModal
+        isOpen={showRoleManager}
+        onClose={() => setShowRoleManager(false)}
+        settings={settings}
+        onUpdateSettings={onUpdateSettings}
+      />
+    </>
   );
 };
