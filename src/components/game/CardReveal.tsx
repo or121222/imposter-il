@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Skull, Sparkles, Laugh, UserPlus, Layers } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Player } from '@/hooks/useGameState';
 import { gameCategories, type Category } from '@/data/gameCategories';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
@@ -34,20 +34,22 @@ export const CardReveal = ({
   const category = allCategories.find(c => c.id === categoryId);
   const { role } = player;
   const sounds = useSoundEffects();
+  const [hasRevealed, setHasRevealed] = useState(false);
 
   // Initialize global sound effects
   useEffect(() => {
     setGlobalSoundEffects(sounds);
   }, [sounds]);
 
-  // Play sound on card reveal
-  useEffect(() => {
+  // Handle card reveal
+  const handleReveal = () => {
+    setHasRevealed(true);
     if (role === 'imposter' || role === 'accomplice') {
       sounds.playSound('imposter');
     } else {
       sounds.playSound('reveal');
     }
-  }, [role, sounds]);
+  };
 
   // Determine what word to display based on role
   const getDisplayContent = () => {
@@ -141,6 +143,7 @@ export const CardReveal = ({
       </motion.div>
     );
   };
+
   const renderCard = () => {
     if (content.type === 'imposter') {
       return <motion.div className="space-y-4" initial={{
@@ -336,48 +339,64 @@ export const CardReveal = ({
           </p>}
       </motion.div>;
   };
-  return <motion.div className="min-h-screen flex flex-col items-center justify-center p-6" initial={{
-    opacity: 0
-  }} animate={{
-    opacity: 1
-  }} exit={{
-    opacity: 0
-  }}>
+
+  return (
+    <motion.div 
+      className="min-h-screen flex flex-col items-center justify-center p-6" 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+    >
       {/* Category Header - Above the card */}
       <CategoryHeader />
 
-      <motion.div className="glass-card-strong p-8 max-w-sm w-full text-center space-y-6" initial={{
-      rotateY: 90,
-      opacity: 0
-    }} animate={{
-      rotateY: 0,
-      opacity: 1
-    }} transition={{
-      type: 'spring',
-      damping: 20,
-      stiffness: 200
-    }}>
+      <motion.div 
+        className="glass-card-strong p-8 max-w-sm w-full text-center space-y-6" 
+        initial={{ rotateY: 90, opacity: 0 }} 
+        animate={{ rotateY: 0, opacity: 1 }} 
+        transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+      >
         {/* Player name */}
         <div className="text-muted-foreground">
           <span>{player.name}</span>
         </div>
 
-        {/* Card content */}
-        {renderCard()}
+        {/* Hidden card - click to reveal */}
+        {!hasRevealed ? (
+          <motion.button
+            onClick={handleReveal}
+            className="w-full aspect-[4/3] glass-card flex flex-col items-center justify-center gap-4 cursor-pointer"
+            style={{
+              background: 'linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--secondary) / 0.1))',
+              border: '2px dashed hsl(var(--primary) / 0.5)',
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <EyeOff className="w-12 h-12 text-muted-foreground" />
+            <span className="text-muted-foreground">לחץ לחשיפת התפקיד</span>
+          </motion.button>
+        ) : (
+          /* Card content - revealed */
+          renderCard()
+        )}
 
-        {/* Hide button */}
-        <motion.button 
-          onClick={handleHide} 
-          className="btn-neon-magenta w-full flex items-center justify-center gap-2" 
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <EyeOff className="w-5 h-5" />
-          <span>הסתר והעבר הלאה</span>
-        </motion.button>
+        {/* Hide button - only show after reveal */}
+        {hasRevealed && (
+          <motion.button 
+            onClick={handleHide} 
+            className="btn-neon-magenta w-full flex items-center justify-center gap-2" 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <EyeOff className="w-5 h-5" />
+            <span>הסתר והעבר הלאה</span>
+          </motion.button>
+        )}
       </motion.div>
-    </motion.div>;
+    </motion.div>
+  );
 };
