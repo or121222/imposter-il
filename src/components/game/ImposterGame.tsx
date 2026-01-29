@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, ChevronLeft } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGameState } from '@/hooks/useGameState';
 import { useCustomCategories } from '@/hooks/useCustomCategories';
 import { useScoring } from '@/hooks/useScoring';
@@ -54,22 +54,28 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
   const soundEffects = useSoundEffects();
   const { vibrate } = useHaptics();
   const [showVotingResults, setShowVotingResults] = useState(false);
+  const hasSyncedRef = useRef(false);
 
   // Set global sound instance for other components
   useEffect(() => {
     setGlobalSoundEffects(soundEffects);
   }, [soundEffects]);
 
-  // Sync active players from localStorage on mount
+  // Sync active players from localStorage - wait for playerScores to load
   useEffect(() => {
-    const activePlayers = getActivePlayers();
+    // Wait for playerScores to load, then sync once
+    if (playerScores.length === 0 || hasSyncedRef.current) return;
+    
+    const activePlayers = playerScores.filter(p => p.isActive);
+    if (activePlayers.length === 0) return;
+    
+    hasSyncedRef.current = true;
+    
+    // Add all active players to the game
     activePlayers.forEach(player => {
-      const alreadyInGame = state.players.some(p => p.name.toLowerCase() === player.name.toLowerCase());
-      if (!alreadyInGame) {
-        addPlayer(player.name);
-      }
+      addPlayer(player.name);
     });
-  }, []); // Only run on mount
+  }, [playerScores, addPlayer]);
 
   // Add players to scoring system when they are added
   const handleAddPlayer = (name: string) => {
