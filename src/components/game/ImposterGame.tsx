@@ -56,30 +56,6 @@ const ImposterGame = () => {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showVotingResults, setShowVotingResults] = useState(false);
 
-  // Sync players from scoreboard on mount - load active players into the game
-  useEffect(() => {
-    const activePlayers = getActivePlayers();
-    activePlayers.forEach(player => {
-      const alreadyInGame = state.players.some(p => p.name.toLowerCase() === player.name.toLowerCase());
-      if (!alreadyInGame) {
-        addPlayer(player.name);
-      }
-    });
-  }, []); // Run only on mount
-
-  // Keep game players synced with scoreboard active players
-  useEffect(() => {
-    const activePlayers = getActivePlayers();
-    const activeNames = activePlayers.map(p => p.name.toLowerCase());
-    
-    // Remove players from game that are no longer active in scoreboard
-    state.players.forEach(player => {
-      if (!activeNames.includes(player.name.toLowerCase())) {
-        removePlayer(player.id);
-      }
-    });
-  }, [playerScores]); // Re-run when scoreboard changes
-
   // Set global sound instance for other components
   useEffect(() => {
     setGlobalSoundEffects(soundEffects);
