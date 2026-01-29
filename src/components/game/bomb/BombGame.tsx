@@ -1,17 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Settings, Users, Play, Bomb, HelpCircle } from 'lucide-react';
+import { ArrowRight, Settings, Users, Play, Bomb, HelpCircle, Zap } from 'lucide-react';
 import { GlobalControls, GlobalFooter } from '../GlobalControls';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useBombCategories } from '@/hooks/useBombCategories';
 import { useBombSound } from '@/hooks/useBombSound';
+import { useBombPunishments } from '@/hooks/useBombPunishments';
+import { useGlitchMode } from '@/hooks/useGlitchMode';
 import { BombCategory } from '@/data/bombCategories';
 import { BombCategoryEditor } from './BombCategoryEditor';
 import { BombButton } from './BombButton';
 import { BombExplosion } from './BombExplosion';
+import { PunishmentEditor } from './PunishmentEditor';
+import { PunishmentRoulette } from './PunishmentRoulette';
+import { GlitchEffects } from './GlitchEffects';
 
-type GamePhase = 'setup' | 'category' | 'playing' | 'exploded';
+type GamePhase = 'setup' | 'category' | 'playing' | 'exploded' | 'punishment';
 
 interface BombGameProps {
   onBack: () => void;
@@ -27,9 +34,11 @@ export const BombGame = ({ onBack }: BombGameProps) => {
   const [currentWord, setCurrentWord] = useState('');
   const [usedWords, setUsedWords] = useState<string[]>([]);
   const [showCategoryEditor, setShowCategoryEditor] = useState(false);
+  const [showPunishmentEditor, setShowPunishmentEditor] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
+  const [glitchModeEnabled, setGlitchModeEnabled] = useState(false);
   
   // Hooks
   const {
@@ -43,20 +52,57 @@ export const BombGame = ({ onBack }: BombGameProps) => {
     isCustom,
   } = useBombCategories();
   
-  const { playSound, startTicking, stopTicking, stopAllSounds, deactivate } = useBombSound();
+  const { 
+    playSound, 
+    startTicking, 
+    stopTicking, 
+    startDrone,
+    updateDroneIntensity,
+    stopDrone,
+    stopAllSounds, 
+    deactivate 
+  } = useBombSound();
+  
+  const {
+    punishments,
+    addPunishment,
+    updatePunishment,
+    deletePunishment,
+    resetToDefaults: resetPunishments,
+  } = useBombPunishments();
+
+  const handleFakeExplosion = useCallback(() => {
+    playSound('explosion');
+  }, [playSound]);
+
+  const {
+    glitchState,
+    checkGlitchOnPress,
+    startPeriodicGlitches,
+    stopPeriodicGlitches,
+    clearGlitch,
+  } = useGlitchMode({
+    enabled: glitchModeEnabled,
+    onFakeExplosion: handleFakeExplosion,
+  });
   
   // Refs
   const timerRef = useRef<number | null>(null);
 
-  // Load players from localStorage
+  // Load players and settings from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('bomb_players');
-    if (saved) {
+    const savedPlayers = localStorage.getItem('bomb_players');
+    if (savedPlayers) {
       try {
-        setPlayers(JSON.parse(saved));
+        setPlayers(JSON.parse(savedPlayers));
       } catch (e) {
         console.error('Failed to load bomb players:', e);
       }
+    }
+    
+    const savedGlitchMode = localStorage.getItem('bomb_glitch_mode');
+    if (savedGlitchMode === 'true') {
+      setGlitchModeEnabled(true);
     }
   }, []);
 
@@ -65,15 +111,21 @@ export const BombGame = ({ onBack }: BombGameProps) => {
     localStorage.setItem('bomb_players', JSON.stringify(players));
   }, [players]);
 
+  // Save glitch mode setting
+  useEffect(() => {
+    localStorage.setItem('bomb_glitch_mode', String(glitchModeEnabled));
+  }, [glitchModeEnabled]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopAllSounds();
+      stopPeriodicGlitches();
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
-  }, [stopAllSounds]);
+  }, [stopAllSounds, stopPeriodicGlitches]);
 
   // Timer logic
   useEffect(() => {
@@ -84,6 +136,9 @@ export const BombGame = ({ onBack }: BombGameProps) => {
             // Explosion!
             clearInterval(timerRef.current!);
             stopTicking();
+            stopDrone();
+            stopPeriodicGlitches();
+            clearGlitch();
             playSound('explosion');
             setPhase('exploded');
             return 0;
@@ -98,17 +153,18 @@ export const BombGame = ({ onBack }: BombGameProps) => {
         }
       };
     }
-  }, [phase, playSound, stopTicking]);
+  }, [phase, playSound, stopTicking, stopDrone, stopPeriodicGlitches, clearGlitch]);
 
-  // Update ticking based on time remaining
+  // Update ticking and drone based on time remaining
   useEffect(() => {
     if (phase === 'playing' && timeLeft > 0 && totalTime > 0) {
       const intensity = 1 - (timeLeft / totalTime);
       startTicking(1 + intensity * 9);
+      updateDroneIntensity(intensity);
     } else {
       stopTicking();
     }
-  }, [phase, timeLeft, totalTime, startTicking, stopTicking]);
+  }, [phase, timeLeft, totalTime, startTicking, stopTicking, updateDroneIntensity]);
 
   // Add player
   const handleAddPlayer = useCallback(() => {
@@ -145,12 +201,25 @@ export const BombGame = ({ onBack }: BombGameProps) => {
       setCurrentWord(category.name);
     }
     
+    // Start audio after user interaction
+    startDrone();
+    
+    // Start periodic glitches if enabled
+    if (glitchModeEnabled) {
+      startPeriodicGlitches();
+    }
+    
     setPhase('playing');
-  }, [usedWords]);
+  }, [usedWords, startDrone, glitchModeEnabled, startPeriodicGlitches]);
 
   // Pass the bomb
   const passBomb = useCallback(() => {
     if (!selectedCategory) return;
+    
+    // Check for glitch event
+    if (checkGlitchOnPress()) {
+      return; // Glitch happened, don't pass
+    }
     
     playSound('click');
     
@@ -164,18 +233,25 @@ export const BombGame = ({ onBack }: BombGameProps) => {
       setCurrentWord(word);
       setUsedWords(prev => [...prev, word]);
     }
-  }, [selectedCategory, players.length, usedWords, playSound]);
+  }, [selectedCategory, players.length, usedWords, playSound, checkGlitchOnPress]);
 
-  // Continue after explosion
-  const handleContinue = useCallback(() => {
+  // Continue after explosion - show punishment
+  const handleExplosionComplete = useCallback(() => {
+    setPhase('punishment');
+  }, []);
+
+  // Continue after punishment
+  const handlePunishmentComplete = useCallback(() => {
     setPhase('category');
   }, []);
 
   // Handle back
   const handleBack = useCallback(() => {
     deactivate();
+    stopPeriodicGlitches();
+    clearGlitch();
     onBack();
-  }, [deactivate, onBack]);
+  }, [deactivate, stopPeriodicGlitches, clearGlitch, onBack]);
 
   // Calculate intensity for visuals
   const intensity = totalTime > 0 ? 1 - (timeLeft / totalTime) : 0;
@@ -285,15 +361,50 @@ export const BombGame = ({ onBack }: BombGameProps) => {
             </div>
           </div>
 
-          {/* Category editor button */}
-          <Button
-            variant="outline"
-            onClick={() => setShowCategoryEditor(true)}
-            className="mb-4"
+          {/* Glitch Mode Toggle */}
+          <div 
+            className="glass-card p-4 mb-4 flex items-center justify-between"
+            style={{ borderColor: 'hsl(280 100% 50% / 0.2)' }}
           >
-            <Settings className="w-4 h-4 ml-2" />
-            ערוך קטגוריות
-          </Button>
+            <div className="flex items-center gap-3">
+              <Zap 
+                className="w-5 h-5" 
+                style={{ color: glitchModeEnabled ? 'hsl(280 100% 70%)' : 'hsl(280 50% 50%)' }} 
+              />
+              <div>
+                <Label htmlFor="glitch-mode" className="font-bold cursor-pointer">
+                  מצב קצר חשמלי ⚡
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  הפתעות אקראיות במהלך המשחק
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="glitch-mode"
+              checked={glitchModeEnabled}
+              onCheckedChange={setGlitchModeEnabled}
+            />
+          </div>
+
+          {/* Editor buttons */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowCategoryEditor(true)}
+              className="flex-1"
+            >
+              <Settings className="w-4 h-4 ml-2" />
+              ערוך קטגוריות
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowPunishmentEditor(true)}
+              className="flex-1"
+            >
+              🎰 ערוך עונשים
+            </Button>
+          </div>
 
           {/* Start button */}
           <motion.button
@@ -324,6 +435,16 @@ export const BombGame = ({ onBack }: BombGameProps) => {
           isCustom={isCustom}
         />
 
+        <PunishmentEditor
+          isOpen={showPunishmentEditor}
+          onClose={() => setShowPunishmentEditor(false)}
+          punishments={punishments}
+          onAddPunishment={addPunishment}
+          onUpdatePunishment={updatePunishment}
+          onDeletePunishment={deletePunishment}
+          onResetToDefaults={resetPunishments}
+        />
+
         {/* Help Modal */}
         <AnimatePresence>
           {showHelp && (
@@ -352,7 +473,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
                   </h2>
                 </div>
                 <p className="text-center text-foreground/90 leading-relaxed">
-                  העבירו את הטלפון מאחד לשני. ענו על השאלה ולחצו על הכפתור לפני שהפצצה מתפוצצת! המפסיד שותה. 🍺
+                  העבירו את הטלפון מאחד לשני. ענו על השאלה ולחצו על הכפתור לפני שהפצצה מתפוצצת! המפסיד מקבל עונש מהגלגל 🎰
                 </p>
                 <Button
                   onClick={() => setShowHelp(false)}
@@ -442,7 +563,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
   if (phase === 'playing') {
     return (
       <div 
-        className="min-h-screen flex flex-col items-center justify-center p-4"
+        className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
         style={{
           background: `linear-gradient(180deg, 
             hsl(${10 - intensity * 10} ${50 + intensity * 30}% ${8 - intensity * 4}%) 0%, 
@@ -450,16 +571,37 @@ export const BombGame = ({ onBack }: BombGameProps) => {
           )`,
         }}
       >
+        {/* Glitch Effects */}
+        <GlitchEffects activeGlitch={glitchState.active} />
+
         {/* Back button */}
         <button
           onClick={() => {
             stopAllSounds();
+            stopPeriodicGlitches();
+            clearGlitch();
             setPhase('setup');
           }}
           className="absolute top-4 right-4 p-2 glass-card rounded-xl hover:bg-muted/40 transition-colors z-10"
         >
           <ArrowRight className="w-6 h-6" />
         </button>
+
+        {/* Glitch mode indicator */}
+        {glitchModeEnabled && (
+          <motion.div
+            className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+            style={{
+              background: 'hsl(280 80% 50% / 0.2)',
+              border: '1px solid hsl(280 80% 50% / 0.3)',
+            }}
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Zap className="w-3 h-3" style={{ color: 'hsl(280 100% 70%)' }} />
+            <span style={{ color: 'hsl(280 100% 70%)' }}>קצר חשמלי</span>
+          </motion.div>
+        )}
 
         {/* Current player */}
         {players.length > 0 && (
@@ -468,6 +610,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
             key={currentPlayerIndex}
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
+            style={{ transform: glitchState.active === 'reverse' ? 'scaleY(-1)' : undefined }}
           >
             <p className="text-sm text-white/60 mb-1">תור של</p>
             <p 
@@ -485,6 +628,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
           key={currentWord}
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
+          style={{ transform: glitchState.active === 'reverse' ? 'scaleY(-1)' : undefined }}
         >
           <p className="text-sm text-white/60 mb-2">{selectedCategory?.emoji} {selectedCategory?.name}</p>
           <p 
@@ -502,6 +646,8 @@ export const BombGame = ({ onBack }: BombGameProps) => {
         <BombButton
           onPress={passBomb}
           intensity={intensity}
+          flipped={glitchState.active === 'reverse'}
+          position={glitchState.dodgePosition}
         />
 
         {/* Danger indicator at high intensity */}
@@ -520,13 +666,29 @@ export const BombGame = ({ onBack }: BombGameProps) => {
   }
 
   // Render explosion
-  return (
-    <BombExplosion
-      isExploded={phase === 'exploded'}
-      currentPlayer={players.length > 0 ? players[currentPlayerIndex] : undefined}
-      onContinue={handleContinue}
-    />
-  );
+  if (phase === 'exploded') {
+    return (
+      <BombExplosion
+        isExploded={true}
+        currentPlayer={players.length > 0 ? players[currentPlayerIndex] : undefined}
+        onContinue={handleExplosionComplete}
+      />
+    );
+  }
+
+  // Render punishment roulette
+  if (phase === 'punishment') {
+    return (
+      <PunishmentRoulette
+        isOpen={true}
+        punishments={punishments}
+        currentPlayer={players.length > 0 ? players[currentPlayerIndex] : undefined}
+        onComplete={handlePunishmentComplete}
+      />
+    );
+  }
+
+  return null;
 };
 
 export default BombGame;
