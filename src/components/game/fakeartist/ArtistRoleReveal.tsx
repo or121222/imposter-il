@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
-import { EyeOff, Palette, HelpCircle, ChevronLeft, Layers } from 'lucide-react';
+import { EyeOff, Palette, HelpCircle, Layers } from 'lucide-react';
+import { useGameAudio } from '@/hooks/useGameAudio';
+import { useCallback, useRef } from 'react';
 
 interface ArtistRoleRevealProps {
   playerName: string;
@@ -28,6 +30,25 @@ export const ArtistRoleReveal = ({
   onNext,
   isLastPlayer,
 }: ArtistRoleRevealProps) => {
+  const { playSound, initialize: initAudio } = useGameAudio();
+  const hasInitialized = useRef(false);
+
+  const handleShowRole = useCallback(() => {
+    // Initialize audio on user interaction
+    if (!hasInitialized.current) {
+      initAudio();
+      hasInitialized.current = true;
+    }
+    
+    // Play appropriate sound
+    playSound(isFake ? 'imposter' : 'whoosh');
+    onShowRole();
+  }, [initAudio, playSound, isFake, onShowRole]);
+
+  const handleNext = useCallback(() => {
+    playSound('click');
+    onNext();
+  }, [playSound, onNext]);
   return (
     <motion.div
       className="min-h-screen flex flex-col items-center justify-center p-6"
@@ -100,7 +121,7 @@ export const ArtistRoleReveal = ({
         {/* Role Card */}
         {!hasSeenRole ? (
           <motion.button
-            onClick={onShowRole}
+            onClick={handleShowRole}
             className="w-full aspect-[4/3] glass-card flex flex-col items-center justify-center gap-4 cursor-pointer"
             style={{
               background: 'linear-gradient(135deg, hsl(320 100% 60% / 0.1), hsl(270 100% 60% / 0.1))',
@@ -191,7 +212,7 @@ export const ArtistRoleReveal = ({
         {/* Next Button */}
         {hasSeenRole && (
           <motion.button
-            onClick={onNext}
+            onClick={handleNext}
             className="btn-neon-magenta w-full flex items-center justify-center gap-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useBombCategories } from '@/hooks/useBombCategories';
-import { useBombSound } from '@/hooks/useBombSound';
+import { useGameAudio } from '@/hooks/useGameAudio';
 import { useBombPunishments } from '@/hooks/useBombPunishments';
 import { useGlitchMode } from '@/hooks/useGlitchMode';
 import { BombCategory } from '@/data/bombCategories';
@@ -52,7 +52,9 @@ export const BombGame = ({ onBack }: BombGameProps) => {
     isCustom,
   } = useBombCategories();
   
+  // Unified audio engine
   const { 
+    initialize: initAudio,
     playSound, 
     startTicking, 
     stopTicking, 
@@ -61,7 +63,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
     stopDrone,
     stopAllSounds, 
     deactivate 
-  } = useBombSound();
+  } = useGameAudio();
   
   const {
     punishments,
@@ -181,7 +183,10 @@ export const BombGame = ({ onBack }: BombGameProps) => {
   }, []);
 
   // Start game with category
-  const startGame = useCallback((category: BombCategory) => {
+  const startGame = useCallback(async (category: BombCategory) => {
+    // Initialize audio on user interaction (bypasses autoplay policy)
+    await initAudio();
+    
     setSelectedCategory(category);
     setUsedWords([]);
     setCurrentPlayerIndex(0);
@@ -210,7 +215,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
     }
     
     setPhase('playing');
-  }, [usedWords, startDrone, glitchModeEnabled, startPeriodicGlitches]);
+  }, [usedWords, initAudio, startDrone, glitchModeEnabled, startPeriodicGlitches]);
 
   // Pass the bomb
   const passBomb = useCallback(() => {

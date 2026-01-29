@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Pencil, Eraser, Check, RotateCcw } from 'lucide-react';
-import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useGameAudio } from '@/hooks/useGameAudio';
 import { useHaptics } from '@/hooks/useHaptics';
 
 interface Player {
@@ -36,8 +36,9 @@ export const DrawingCanvas = ({
   const [tool, setTool] = useState<Tool>('draw');
   const [hasDrawn, setHasDrawn] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-  const sounds = useSoundEffects();
+  const { playSound, initialize: initAudio } = useGameAudio();
   const { vibrate } = useHaptics();
+  const hasInitializedAudio = useRef(false);
 
   // Initialize canvas
   useEffect(() => {
@@ -131,10 +132,16 @@ export const DrawingCanvas = ({
     const pos = getPosition(e);
     if (!pos) return;
 
+    // Initialize audio on first interaction
+    if (!hasInitializedAudio.current) {
+      initAudio();
+      hasInitializedAudio.current = true;
+    }
+
     setIsDrawing(true);
     setHasDrawn(true);
     lastPointRef.current = pos;
-  }, [getPosition]);
+  }, [getPosition, initAudio]);
 
   // Handle drawing move
   const handleMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
@@ -176,16 +183,16 @@ export const DrawingCanvas = ({
     }
 
     setHasDrawn(false);
-    sounds.playSound('click');
+    playSound('click');
     vibrate('light');
-  }, [canvasData, sounds, vibrate]);
+  }, [canvasData, playSound, vibrate]);
 
   // Handle tool change
   const handleToolChange = useCallback((newTool: Tool) => {
     setTool(newTool);
-    sounds.playSound('click');
+    playSound('click');
     vibrate('light');
-  }, [sounds, vibrate]);
+  }, [playSound, vibrate]);
 
   // Handle done
   const handleDone = useCallback(() => {
@@ -193,10 +200,10 @@ export const DrawingCanvas = ({
     if (!canvas) return;
 
     const newCanvasData = canvas.toDataURL('image/png');
-    sounds.playSound('success');
+    playSound('success');
     vibrate('success');
     onComplete(newCanvasData);
-  }, [onComplete, sounds, vibrate]);
+  }, [onComplete, playSound, vibrate]);
 
   return (
     <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full">

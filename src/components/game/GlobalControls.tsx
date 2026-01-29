@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { Volume2, VolumeX, Sun, Moon } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HelpModal } from './HelpModal';
 import { useTheme } from '@/hooks/useTheme';
-import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useGameAudio } from '@/hooks/useGameAudio';
 
 interface GlobalControlsProps {
   showHelp?: boolean;
@@ -11,15 +11,20 @@ interface GlobalControlsProps {
 
 export const GlobalControls = ({ showHelp = true }: GlobalControlsProps) => {
   const { theme, toggleTheme } = useTheme();
-  const soundEffects = useSoundEffects();
+  const gameAudio = useGameAudio();
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Sync with audio state
+  useEffect(() => {
+    setSoundEnabled(gameAudio.isEnabled);
+  }, [gameAudio.isEnabled]);
 
   const handleToggleSound = () => {
     const newState = !soundEnabled;
     setSoundEnabled(newState);
-    soundEffects.toggleSound(newState);
+    gameAudio.setEnabled(newState);
     if (newState) {
-      soundEffects.playSound('click');
+      gameAudio.playSound('click');
     }
   };
 
