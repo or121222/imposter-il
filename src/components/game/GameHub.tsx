@@ -23,7 +23,7 @@ interface GameCardProps {
 
 const GameCard = ({ title, subtitle, icon, gradient, glowColor, onPlay, onHelp }: GameCardProps) => (
   <motion.div
-    className="relative glass-card p-6 cursor-pointer overflow-hidden group"
+    className="relative glass-card p-4 cursor-pointer overflow-hidden group aspect-square flex flex-col"
     whileHover={{ scale: 1.02, y: -4 }}
     whileTap={{ scale: 0.98 }}
     onClick={onPlay}
@@ -48,9 +48,9 @@ const GameCard = ({ title, subtitle, icon, gradient, glowColor, onPlay, onHelp }
     </div>
     
     {/* Content */}
-    <div className="relative z-10 flex flex-col items-center text-center gap-4">
+    <div className="relative z-10 flex flex-col items-center justify-center text-center gap-3 flex-1">
       <motion.div 
-        className="p-4 rounded-2xl"
+        className="p-3 rounded-xl"
         style={{ 
           background: gradient,
           boxShadow: `0 0 20px ${glowColor}50`,
@@ -62,21 +62,21 @@ const GameCard = ({ title, subtitle, icon, gradient, glowColor, onPlay, onHelp }
       </motion.div>
       
       <div>
-        <h2 className="text-2xl font-black mb-1">{title}</h2>
-        <p className="text-muted-foreground text-sm">{subtitle}</p>
+        <h2 className="text-lg font-black mb-0.5 leading-tight">{title}</h2>
+        <p className="text-muted-foreground text-xs leading-tight">{subtitle}</p>
       </div>
-      
-      {/* Help button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onHelp();
-        }}
-        className="absolute top-3 left-3 p-2 rounded-full glass-card hover:bg-primary/20 transition-colors"
-      >
-        <HelpCircle className="w-5 h-5 text-muted-foreground" />
-      </button>
     </div>
+    
+    {/* Help button */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onHelp();
+      }}
+      className="absolute top-2 left-2 p-1.5 rounded-full glass-card hover:bg-primary/20 transition-colors"
+    >
+      <HelpCircle className="w-4 h-4 text-muted-foreground" />
+    </button>
   </motion.div>
 );
 
