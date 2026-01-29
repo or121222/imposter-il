@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ChevronLeft } from 'lucide-react';
 import { PlayerInput } from '../PlayerInput';
@@ -48,6 +48,7 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
   const [votes, setVotes] = useState<Record<string, string>>({});
   const [fakeGuessedCorrectly, setFakeGuessedCorrectly] = useState<boolean | null>(null);
   const [canvasData, setCanvasData] = useState<string | null>(null);
+  const hasSyncedRef = useRef(false);
   
   const soundEffects = useSoundEffects();
   setGlobalSoundEffects(soundEffects);
@@ -61,27 +62,23 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
     getActivePlayers,
   } = useScoring();
 
-  // Sync active players from localStorage on mount
+  // Sync active players from localStorage - wait for playerScores to load
   useEffect(() => {
-    const activePlayers = getActivePlayers();
-    activePlayers.forEach(player => {
-      const alreadyInGame = players.some(p => p.name.toLowerCase() === player.name.toLowerCase());
-      if (!alreadyInGame) {
-        const colorIndex = players.length % playerColors.length;
-        setPlayers(prev => {
-          // Check again inside setState to prevent duplicates
-          if (prev.some(p => p.name.toLowerCase() === player.name.toLowerCase())) {
-            return prev;
-          }
-          return [...prev, {
-            id: `artist-player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            name: player.name,
-            color: playerColors[prev.length % playerColors.length],
-          }];
-        });
-      }
-    });
-  }, []); // Only run on mount
+    // Wait for playerScores to load, then sync once
+    if (playerScores.length === 0 || hasSyncedRef.current) return;
+    
+    const activePlayers = playerScores.filter(p => p.isActive);
+    if (activePlayers.length === 0) return;
+    
+    hasSyncedRef.current = true;
+    
+    // Add all active players to the game at once
+    setPlayers(activePlayers.map((player, index) => ({
+      id: `artist-player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: player.name,
+      color: playerColors[index % playerColors.length],
+    })));
+  }, [playerScores]);
 
   // Add player
   const handleAddPlayer = useCallback((name: string) => {
