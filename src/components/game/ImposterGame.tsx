@@ -1,24 +1,22 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, ChevronLeft, Sun, Moon, Volume2, VolumeX, Download } from 'lucide-react';
+import { Play, ChevronLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useGameState } from '@/hooks/useGameState';
 import { useCustomCategories } from '@/hooks/useCustomCategories';
 import { useScoring } from '@/hooks/useScoring';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
-import { useTheme } from '@/hooks/useTheme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { GameLogo } from '@/components/game/GameLogo';
 import { PlayerInput } from '@/components/game/PlayerInput';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
 import { CategorySelector } from '@/components/game/CategorySelector';
-import { HelpModal } from '@/components/game/HelpModal';
 import { PassingScreen } from '@/components/game/PassingScreen';
 import { CardReveal } from '@/components/game/CardReveal';
 import { ActiveGameScreen } from '@/components/game/ActiveGameScreen';
 import { RoundStarterScreen } from '@/components/game/RoundStarterScreen';
-import { InstallPrompt } from '@/components/game/InstallPrompt';
 import { VotingScreen, VotingResults } from '@/components/game/VotingScreen';
 import { ScoreBoard } from '@/components/game/ScoreBoard';
+import { GlobalControls, GlobalFooter } from '@/components/game/GlobalControls';
 
 interface ImposterGameProps {
   onBack?: () => void;
@@ -54,16 +52,24 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
   } = useGameState(customCategories);
 
   const soundEffects = useSoundEffects();
-  const { theme, toggleTheme } = useTheme();
   const { vibrate } = useHaptics();
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showVotingResults, setShowVotingResults] = useState(false);
 
   // Set global sound instance for other components
   useEffect(() => {
     setGlobalSoundEffects(soundEffects);
   }, [soundEffects]);
+
+  // Sync active players from localStorage on mount
+  useEffect(() => {
+    const activePlayers = getActivePlayers();
+    activePlayers.forEach(player => {
+      const alreadyInGame = state.players.some(p => p.name.toLowerCase() === player.name.toLowerCase());
+      if (!alreadyInGame) {
+        addPlayer(player.name);
+      }
+    });
+  }, []); // Only run on mount
 
   // Add players to scoring system when they are added
   const handleAddPlayer = (name: string) => {
@@ -90,15 +96,6 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
       if (!alreadyInGame) {
         addPlayer(player.name);
       }
-    }
-  };
-
-  const handleToggleSound = () => {
-    const newState = !soundEnabled;
-    setSoundEnabled(newState);
-    soundEffects.toggleSound(newState);
-    if (newState) {
-      soundEffects.playSound('click');
     }
   };
 
@@ -160,40 +157,12 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
   const maxImposters = Math.floor(state.players.length / 2) || 1;
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden pb-12">
       {/* Background glow effect */}
       <div className="bg-glow" />
 
-      {/* Top controls */}
-      <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
-        <HelpModal fixedTrigger={false} />
-
-        <motion.button
-          onClick={handleToggleSound}
-          className="p-3 rounded-full glass-card hover:bg-muted/40 transition-colors"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {soundEnabled ? (
-            <Volume2 className="w-6 h-6 text-primary" />
-          ) : (
-            <VolumeX className="w-6 h-6 text-muted-foreground" />
-          )}
-        </motion.button>
-
-        <motion.button
-          onClick={toggleTheme}
-          className="p-3 rounded-full glass-card hover:bg-muted/40 transition-colors"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-6 h-6 text-primary" />
-          ) : (
-            <Moon className="w-6 h-6 text-primary" />
-          )}
-        </motion.button>
-      </div>
+      {/* Global controls */}
+      <GlobalControls showHelp={true} />
 
       <AnimatePresence mode="wait">
         {/* Setup Phase */}
@@ -260,22 +229,6 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
                   הוסיפו עוד {3 - state.players.length} שחקנים כדי להתחיל
                 </p>
               )}
-
-              {/* Footer */}
-              <div className="pt-8 pb-4 space-y-4">
-                <motion.button
-                  onClick={() => setShowInstallPrompt(true)}
-                  className="w-full py-3 rounded-xl glass-card flex items-center justify-center gap-2 hover:bg-muted/40 transition-colors"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Download className="w-5 h-5 text-primary" />
-                  <span className="font-medium">הורידו עכשיו</span>
-                </motion.button>
-                <p className="text-center text-xs text-muted-foreground">
-                  כל הזכויות שמורות ל - אור כהן
-                </p>
-              </div>
             </div>
           </motion.div>
         )}
@@ -463,8 +416,8 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
         )}
       </AnimatePresence>
 
-      {/* Install Prompt Modal */}
-      <InstallPrompt isOpen={showInstallPrompt} onClose={() => setShowInstallPrompt(false)} />
+      {/* Global footer */}
+      <GlobalFooter />
     </div>
   );
 };

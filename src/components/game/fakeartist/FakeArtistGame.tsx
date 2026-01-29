@@ -1,14 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ChevronLeft, Settings } from 'lucide-react';
-import { GameLogo } from '../GameLogo';
+import { ArrowRight, ChevronLeft } from 'lucide-react';
 import { PlayerInput } from '../PlayerInput';
+import { ScoreBoard } from '../ScoreBoard';
 import { DrawingCategorySelector } from './DrawingCategorySelector';
 import { ArtistPassingScreen } from './ArtistPassingScreen';
 import { ArtistRoleReveal } from './ArtistRoleReveal';
 import { DrawingCanvas } from './DrawingCanvas';
 import { ArtistVotingScreen } from './ArtistVotingScreen';
 import { ArtistResults } from './ArtistResults';
+import { GlobalControls, GlobalFooter } from '../GlobalControls';
 import { useScoring, PlayerScore } from '@/hooks/useScoring';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
 import { drawingCategories, getRandomDrawingWord, playerColors } from '@/data/drawingCategories';
@@ -57,7 +58,30 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
     togglePlayerActive,
     removePlayer: removePlayerScore,
     resetScores,
+    getActivePlayers,
   } = useScoring();
+
+  // Sync active players from localStorage on mount
+  useEffect(() => {
+    const activePlayers = getActivePlayers();
+    activePlayers.forEach(player => {
+      const alreadyInGame = players.some(p => p.name.toLowerCase() === player.name.toLowerCase());
+      if (!alreadyInGame) {
+        const colorIndex = players.length % playerColors.length;
+        setPlayers(prev => {
+          // Check again inside setState to prevent duplicates
+          if (prev.some(p => p.name.toLowerCase() === player.name.toLowerCase())) {
+            return prev;
+          }
+          return [...prev, {
+            id: `artist-player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: player.name,
+            color: playerColors[prev.length % playerColors.length],
+          }];
+        });
+      }
+    });
+  }, []); // Only run on mount
 
   // Add player
   const handleAddPlayer = useCallback((name: string) => {
@@ -218,8 +242,11 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
   const fakePlayer = players.find(p => roles.find(r => r.playerId === p.id && r.isFake));
 
   return (
-    <div className="min-h-screen p-4 flex flex-col">
+    <div className="min-h-screen p-4 flex flex-col pb-12">
       <div className="bg-glow" />
+
+      {/* Global controls */}
+      <GlobalControls showHelp={true} />
 
       <AnimatePresence mode="wait">
         {/* Setup Phase */}
@@ -246,6 +273,12 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
             </div>
 
             <div className="flex-1 space-y-4">
+              {/* Score Board */}
+              <ScoreBoard
+                playerScores={playerScores}
+                onResetScores={resetScores}
+              />
+
               <PlayerInput
                 players={players}
                 allPlayers={playerScores}
@@ -395,6 +428,9 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Global footer */}
+      <GlobalFooter />
     </div>
   );
 };
