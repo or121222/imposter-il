@@ -59,7 +59,7 @@ export const PassingScreen = ({ player, onReveal }: PassingScreenProps) => {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <span>לחץ לחשיפה</span>
+          <span>אני מוכן</span>
           <ArrowLeft className="w-5 h-5" />
         </motion.button>
 
