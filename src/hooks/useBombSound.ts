@@ -1,147 +1,123 @@
 import { useCallback, useRef, useEffect } from 'react';
 
 // Continuous Variable Speed Audio Engine for The Bomb game
-// Uses external audio files for realistic mechanical clock ticking
-
-const AUDIO_URLS = {
-  tick: 'https://assets.mixkit.co/active_storage/sfx/2039/2039-preview.mp3', // Clock tick
-  explosion: 'https://assets.mixkit.co/active_storage/sfx/209/209-preview.mp3', // Explosion
-};
+// Uses Web Audio API for reliable synthesized sounds
 
 export const useBombSound = () => {
-  const tickAudioRef = useRef<HTMLAudioElement | null>(null);
-  const explosionAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const isActiveRef = useRef(false);
   const intensityRef = useRef(0);
-  const animationFrameRef = useRef<number | null>(null);
-  const lastTickTimeRef = useRef(0);
+  const tickIntervalRef = useRef<number | null>(null);
   const isInitializedRef = useRef(false);
 
-  // Initialize audio elements
+  // Initialize audio context
   const initialize = useCallback(async () => {
     if (isInitializedRef.current) return;
     
     try {
-      // Create tick audio element
-      tickAudioRef.current = new Audio(AUDIO_URLS.tick);
-      tickAudioRef.current.preload = 'auto';
-      tickAudioRef.current.loop = false;
-      tickAudioRef.current.volume = 0.5;
-      
-      // Create explosion audio element
-      explosionAudioRef.current = new Audio(AUDIO_URLS.explosion);
-      explosionAudioRef.current.preload = 'auto';
-      explosionAudioRef.current.volume = 0.8;
-      
-      // Preload by attempting to load
-      await Promise.all([
-        new Promise<void>((resolve) => {
-          tickAudioRef.current!.addEventListener('canplaythrough', () => resolve(), { once: true });
-          tickAudioRef.current!.load();
-        }),
-        new Promise<void>((resolve) => {
-          explosionAudioRef.current!.addEventListener('canplaythrough', () => resolve(), { once: true });
-          explosionAudioRef.current!.load();
-        }),
-      ]).catch(() => {
-        // Ignore preload errors - we'll handle playback errors instead
-      });
-      
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Resume context if suspended (required after user interaction)
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
       isInitializedRef.current = true;
     } catch (e) {
-      console.warn('Failed to initialize bomb sounds:', e);
+      console.warn('Failed to initialize audio context:', e);
     }
   }, []);
 
-  // Play a single tick with current intensity
+  // Play a synthesized tick sound
   const playTick = useCallback(() => {
-    if (!tickAudioRef.current || !isActiveRef.current) return;
+    if (!audioContextRef.current || !isActiveRef.current) return;
     
-    const audio = tickAudioRef.current;
+    const ctx = audioContextRef.current;
     const intensity = intensityRef.current;
     
-    // Reset and play
-    audio.currentTime = 0;
-    
-    // Volume: 40% -> 100% based on intensity
-    audio.volume = Math.min(1, 0.4 + intensity * 0.6);
-    
-    // Playback rate: 1x -> 2.5x based on intensity
-    audio.playbackRate = Math.min(2.5, 1 + intensity * 1.5);
-    
-    audio.play().catch(() => {
-      // Ignore play errors (user hasn't interacted yet)
-    });
+    try {
+      // Create a click/tick sound using a short oscillator burst
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      // Higher pitch as intensity increases
+      const baseFreq = 800 + intensity * 400;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, ctx.currentTime + 0.05);
+      
+      // Volume increases with intensity
+      const volume = 0.15 + intensity * 0.25;
+      gain.gain.setValueAtTime(volume, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.08);
+    } catch (e) {
+      // Ignore errors
+    }
   }, []);
 
-  // Continuous tick loop using requestAnimationFrame
-  const tickLoop = useCallback(() => {
-    if (!isActiveRef.current) return;
-    
-    const now = performance.now();
-    const intensity = intensityRef.current;
-    
-    // Interval between ticks: 1000ms -> 150ms based on intensity
-    const interval = Math.max(150, 1000 - intensity * 850);
-    
-    if (now - lastTickTimeRef.current >= interval) {
-      playTick();
-      lastTickTimeRef.current = now;
-    }
-    
-    animationFrameRef.current = requestAnimationFrame(tickLoop);
-  }, [playTick]);
-
-  // Start the ticking
+  // Start continuous ticking with variable speed
   const startTicking = useCallback(() => {
     if (!isActiveRef.current) return;
     
-    // Stop any existing loop
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
+    // Clear any existing interval
+    if (tickIntervalRef.current) {
+      clearInterval(tickIntervalRef.current);
     }
     
-    lastTickTimeRef.current = 0;
-    animationFrameRef.current = requestAnimationFrame(tickLoop);
-  }, [tickLoop]);
+    // Start the tick loop
+    const tick = () => {
+      playTick();
+      
+      // Calculate next interval based on intensity
+      // Goes from 1000ms at intensity 0 to 120ms at intensity 1
+      const interval = Math.max(120, 1000 - intensityRef.current * 880);
+      
+      tickIntervalRef.current = window.setTimeout(tick, interval);
+    };
+    
+    // Start immediately
+    tick();
+  }, [playTick]);
 
-  // Stop the ticking
+  // Stop ticking
   const stopTicking = useCallback(() => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
+    if (tickIntervalRef.current) {
+      clearTimeout(tickIntervalRef.current);
+      tickIntervalRef.current = null;
     }
   }, []);
 
-  // Update intensity (0-1) - affects tick speed, volume, and pitch
+  // Update intensity (0-1)
   const updateIntensity = useCallback((intensity: number) => {
     intensityRef.current = Math.max(0, Math.min(1, intensity));
   }, []);
 
   // Play explosion sound
   const playExplosion = useCallback(() => {
-    if (!explosionAudioRef.current) return;
-    
-    // Stop ticking
     stopTicking();
     
-    const audio = explosionAudioRef.current;
-    audio.currentTime = 0;
-    audio.volume = 0.9;
-    audio.playbackRate = 1;
+    if (!audioContextRef.current) {
+      // Create a temporary context if needed
+      try {
+        const tempCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        synthesizeExplosion(tempCtx);
+      } catch (e) {
+        console.warn('Explosion sound failed:', e);
+      }
+      return;
+    }
     
-    audio.play().catch(() => {
-      // Fallback: synthesize explosion if file fails
-      synthesizeExplosion();
-    });
+    synthesizeExplosion(audioContextRef.current);
   }, [stopTicking]);
 
-  // Fallback synthesized explosion using Web Audio API
-  const synthesizeExplosion = useCallback(() => {
+  // Synthesize explosion using Web Audio API
+  const synthesizeExplosion = (ctx: AudioContext) => {
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Create noise buffer
+      // Create noise buffer for explosion
       const bufferSize = ctx.sampleRate * 0.8;
       const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
       
@@ -190,13 +166,14 @@ export const useBombSound = () => {
     } catch (e) {
       console.warn('Synthesized explosion failed:', e);
     }
-  }, []);
+  };
 
   // Play click sound (for button press)
   const playClick = useCallback(() => {
+    const ctx = audioContextRef.current;
+    if (!ctx) return;
+    
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
@@ -220,16 +197,6 @@ export const useBombSound = () => {
   // Stop all sounds
   const stopAllSounds = useCallback(() => {
     stopTicking();
-    
-    if (tickAudioRef.current) {
-      tickAudioRef.current.pause();
-      tickAudioRef.current.currentTime = 0;
-    }
-    
-    if (explosionAudioRef.current) {
-      explosionAudioRef.current.pause();
-      explosionAudioRef.current.currentTime = 0;
-    }
   }, [stopTicking]);
 
   // Activate sound system
@@ -247,13 +214,9 @@ export const useBombSound = () => {
   useEffect(() => {
     return () => {
       stopAllSounds();
-      if (tickAudioRef.current) {
-        tickAudioRef.current.src = '';
-        tickAudioRef.current = null;
-      }
-      if (explosionAudioRef.current) {
-        explosionAudioRef.current.src = '';
-        explosionAudioRef.current = null;
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
       }
     };
   }, [stopAllSounds]);

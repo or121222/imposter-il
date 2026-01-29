@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Heart, Users, Settings, Play, HelpCircle, Check, X, RotateCcw, Sparkles } from 'lucide-react';
+import { ArrowRight, Heart, Users, Settings, Play, HelpCircle, Check, X, RotateCcw, Sparkles, Share2, Volume2, VolumeX } from 'lucide-react';
 import { GlobalControls, GlobalFooter } from '../GlobalControls';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,13 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
   const [totalAnswered, setTotalAnswered] = useState(0);
   const [showQuestionEditor, setShowQuestionEditor] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const [allQuestionsPool, setAllQuestionsPool] = useState<DateNightQuestion[]>([]);
+
+  // Audio refs for background music
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const musicOscillatorsRef = useRef<OscillatorNode[]>([]);
+  const musicGainRef = useRef<GainNode | null>(null);
 
   // Hooks
   const {
@@ -59,6 +66,110 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
     if (player2) localStorage.setItem('datenight_player2', player2);
   }, [player1, player2]);
 
+  // Background music player
+  const startBackgroundMusic = useCallback(() => {
+    if (!musicEnabled) return;
+    
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = ctx;
+      
+      // Create a master gain
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0.08, ctx.currentTime);
+      masterGain.connect(ctx.destination);
+      musicGainRef.current = masterGain;
+      
+      // Romantic chord progression (Cmaj7 - Am7 - Fmaj7 - G7)
+      const chordProgression = [
+        [261.63, 329.63, 392.00, 493.88], // Cmaj7
+        [220.00, 261.63, 329.63, 392.00], // Am7
+        [174.61, 220.00, 261.63, 329.63], // Fmaj7
+        [196.00, 246.94, 293.66, 349.23], // G7
+      ];
+      
+      let currentChord = 0;
+      
+      const playChord = () => {
+        // Stop previous oscillators
+        musicOscillatorsRef.current.forEach(osc => {
+          try { osc.stop(); } catch (e) {}
+        });
+        musicOscillatorsRef.current = [];
+        
+        if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
+        
+        const chord = chordProgression[currentChord % chordProgression.length];
+        
+        chord.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          
+          osc.type = i === 0 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          
+          // Gentle fade in/out
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.15 / chord.length, ctx.currentTime + 0.3);
+          gain.gain.linearRampToValueAtTime(0.08 / chord.length, ctx.currentTime + 2.5);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 3);
+          
+          osc.connect(gain);
+          gain.connect(masterGain);
+          
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 3);
+          
+          musicOscillatorsRef.current.push(osc);
+        });
+        
+        currentChord++;
+      };
+      
+      // Play first chord immediately
+      playChord();
+      
+      // Continue playing chords
+      const intervalId = setInterval(playChord, 3000);
+      
+      // Store interval to clear later
+      (audioContextRef.current as any)._intervalId = intervalId;
+    } catch (e) {
+      console.warn('Failed to start background music:', e);
+    }
+  }, [musicEnabled]);
+
+  const stopBackgroundMusic = useCallback(() => {
+    musicOscillatorsRef.current.forEach(osc => {
+      try { osc.stop(); } catch (e) {}
+    });
+    musicOscillatorsRef.current = [];
+    
+    if (audioContextRef.current) {
+      const intervalId = (audioContextRef.current as any)._intervalId;
+      if (intervalId) clearInterval(intervalId);
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopBackgroundMusic();
+    };
+  }, [stopBackgroundMusic]);
+
+  // Toggle music
+  const toggleMusic = useCallback(() => {
+    if (musicEnabled) {
+      stopBackgroundMusic();
+    } else if (phase === 'playing') {
+      startBackgroundMusic();
+    }
+    setMusicEnabled(!musicEnabled);
+  }, [musicEnabled, phase, startBackgroundMusic, stopBackgroundMusic]);
+
   // Start game with selected mode
   const startGame = useCallback(async (mode: GameMode) => {
     await initAudio();
@@ -66,20 +177,53 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
 
     // Get questions based on mode
     let selectedQuestions: DateNightQuestion[];
+    let fullPool: DateNightQuestion[];
+    
     if (mode === 'crazy') {
       // Mix of all categories
-      selectedQuestions = [...getAllQuestions()].sort(() => Math.random() - 0.5);
+      fullPool = [...getAllQuestions()].sort(() => Math.random() - 0.5);
     } else {
-      selectedQuestions = [...getQuestionsByCategory(mode)].sort(() => Math.random() - 0.5);
+      fullPool = [...getQuestionsByCategory(mode)].sort(() => Math.random() - 0.5);
     }
-
-    // Limit to 10 questions per game
-    setGameQuestions(selectedQuestions.slice(0, 10));
+    
+    selectedQuestions = fullPool.slice(0, 10);
+    setAllQuestionsPool(fullPool);
+    
+    setGameQuestions(selectedQuestions);
     setCurrentQuestionIndex(0);
     setMatches(0);
     setTotalAnswered(0);
     setPhase('playing');
-  }, [initAudio, getAllQuestions, getQuestionsByCategory]);
+    
+    // Start background music
+    if (musicEnabled) {
+      startBackgroundMusic();
+    }
+  }, [initAudio, getAllQuestions, getQuestionsByCategory, musicEnabled, startBackgroundMusic]);
+
+  // Continue game with more questions
+  const continueGame = useCallback(() => {
+    // Get next 10 questions from the pool
+    const usedCount = gameQuestions.length;
+    const remainingQuestions = allQuestionsPool.slice(usedCount);
+    
+    if (remainingQuestions.length === 0) {
+      // Shuffle and restart if no more questions
+      const reshuffled = [...allQuestionsPool].sort(() => Math.random() - 0.5);
+      setAllQuestionsPool(reshuffled);
+      setGameQuestions(reshuffled.slice(0, 10));
+    } else {
+      const nextBatch = remainingQuestions.slice(0, 10);
+      setGameQuestions(prev => [...prev, ...nextBatch]);
+    }
+    
+    setCurrentQuestionIndex(gameQuestions.length);
+    setPhase('playing');
+    
+    if (musicEnabled && !audioContextRef.current) {
+      startBackgroundMusic();
+    }
+  }, [gameQuestions, allQuestionsPool, musicEnabled, startBackgroundMusic]);
 
   // Handle match answer
   const handleMatch = useCallback(() => {
@@ -89,6 +233,7 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
 
     if (currentQuestionIndex + 1 >= gameQuestions.length) {
       // Game over - show results
+      stopBackgroundMusic();
       setTimeout(() => {
         setPhase('results');
         // Celebration confetti
@@ -102,7 +247,7 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
     }
-  }, [currentQuestionIndex, gameQuestions.length, playSound]);
+  }, [currentQuestionIndex, gameQuestions.length, playSound, stopBackgroundMusic]);
 
   // Handle no match answer
   const handleNoMatch = useCallback(() => {
@@ -111,23 +256,55 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
 
     if (currentQuestionIndex + 1 >= gameQuestions.length) {
       // Game over - show results
+      stopBackgroundMusic();
       setTimeout(() => {
         setPhase('results');
       }, 500);
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
     }
-  }, [currentQuestionIndex, gameQuestions.length, playSound]);
+  }, [currentQuestionIndex, gameQuestions.length, playSound, stopBackgroundMusic]);
 
-  // Play again
+  // Play again (new game)
   const playAgain = useCallback(() => {
+    stopBackgroundMusic();
     setPhase('mode');
-  }, []);
+  }, [stopBackgroundMusic]);
+
+  // Share results
+  const shareResults = useCallback(async () => {
+    const scoreMessage = getScoreMessage(syncPercentage);
+    const shareText = `💕 ${player1} ו${player2} שיחקו בדייט לילי!\n\n🎯 אחוז סנכרון: ${syncPercentage}%\n${scoreMessage.emoji} ${scoreMessage.title}\n\n✅ ${matches} התאמות מתוך ${totalAnswered} שאלות\n\nנסו גם אתם! 💕`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'דייט לילי - תוצאות',
+          text: shareText,
+        });
+      } catch (e) {
+        // User cancelled or share failed - fallback to clipboard
+        copyToClipboard(shareText);
+      }
+    } else {
+      copyToClipboard(shareText);
+    }
+  }, [player1, player2, matches, totalAnswered]);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      // Show a brief feedback - could add toast here
+      alert('הועתק ללוח!');
+    }).catch(() => {
+      alert('לא הצלחנו להעתיק. נסו שוב.');
+    });
+  };
 
   // Handle back
   const handleBack = useCallback(() => {
+    stopBackgroundMusic();
     onBack();
-  }, [onBack]);
+  }, [onBack, stopBackgroundMusic]);
 
   // Calculate sync percentage
   const syncPercentage = totalAnswered > 0 ? Math.round((matches / totalAnswered) * 100) : 0;
@@ -453,10 +630,25 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
 
         {/* Back button */}
         <button
-          onClick={() => setPhase('mode')}
+          onClick={() => {
+            stopBackgroundMusic();
+            setPhase('mode');
+          }}
           className="absolute top-4 right-4 p-2 glass-card rounded-xl hover:bg-muted/40 transition-colors z-10"
         >
           <ArrowRight className="w-6 h-6" />
+        </button>
+
+        {/* Music toggle */}
+        <button
+          onClick={toggleMusic}
+          className="absolute top-4 left-4 p-2 glass-card rounded-xl hover:bg-muted/40 transition-colors z-10"
+        >
+          {musicEnabled ? (
+            <Volume2 className="w-5 h-5" style={{ color: 'hsl(330 90% 65%)' }} />
+          ) : (
+            <VolumeX className="w-5 h-5 text-muted-foreground" />
+          )}
         </button>
 
         {/* Progress bar */}
@@ -645,6 +837,21 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
             </div>
           </div>
 
+          {/* Share button */}
+          <motion.button
+            onClick={shareResults}
+            className="w-full py-3 rounded-xl font-bold text-base mb-4 flex items-center justify-center gap-2"
+            style={{
+              background: 'linear-gradient(135deg, hsl(200 80% 50%), hsl(220 80% 50%))',
+              boxShadow: '0 0 20px hsl(210 80% 50% / 0.3)',
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Share2 className="w-5 h-5" />
+            שתפו את התוצאה! 📲
+          </motion.button>
+
           {/* Actions */}
           <div className="flex gap-3">
             <Button
@@ -655,14 +862,24 @@ export const DateNightGame = ({ onBack }: DateNightGameProps) => {
               חזרה לתפריט
             </Button>
             <Button
-              onClick={playAgain}
+              onClick={continueGame}
+              variant="outline"
               className="flex-1"
-              style={{ background: themeGradient }}
+              style={{ borderColor: 'hsl(330 60% 50% / 0.5)' }}
             >
-              <RotateCcw className="w-4 h-4 ml-2" />
-              שחקו שוב
+              <Play className="w-4 h-4 ml-2" />
+              המשיכו!
             </Button>
           </div>
+          
+          <Button
+            onClick={playAgain}
+            className="w-full mt-3"
+            style={{ background: themeGradient }}
+          >
+            <RotateCcw className="w-4 h-4 ml-2" />
+            משחק חדש
+          </Button>
         </motion.div>
       </div>
     );
