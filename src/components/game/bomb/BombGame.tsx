@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useBombCategories } from '@/hooks/useBombCategories';
-import { useGameAudio } from '@/hooks/useGameAudio';
+import { useBombSound } from '@/hooks/useBombSound';
 import { useBombPunishments } from '@/hooks/useBombPunishments';
 import { useGlitchMode } from '@/hooks/useGlitchMode';
 import { BombCategory } from '@/data/bombCategories';
@@ -52,18 +52,18 @@ export const BombGame = ({ onBack }: BombGameProps) => {
     isCustom,
   } = useBombCategories();
   
-  // Unified audio engine
+  // Continuous variable-speed audio engine
   const { 
     initialize: initAudio,
-    playSound, 
+    activate: activateAudio,
+    deactivate: deactivateAudio,
     startTicking, 
     stopTicking, 
-    startDrone,
-    updateDroneIntensity,
-    stopDrone,
+    updateIntensity,
+    playExplosion,
+    playClick,
     stopAllSounds, 
-    deactivate 
-  } = useGameAudio();
+  } = useBombSound();
   
   const {
     punishments,
@@ -74,8 +74,8 @@ export const BombGame = ({ onBack }: BombGameProps) => {
   } = useBombPunishments();
 
   const handleFakeExplosion = useCallback(() => {
-    playSound('explosion');
-  }, [playSound]);
+    playExplosion();
+  }, [playExplosion]);
 
   const {
     glitchState,
@@ -138,10 +138,9 @@ export const BombGame = ({ onBack }: BombGameProps) => {
             // Explosion!
             clearInterval(timerRef.current!);
             stopTicking();
-            stopDrone();
             stopPeriodicGlitches();
             clearGlitch();
-            playSound('explosion');
+            playExplosion();
             setPhase('exploded');
             return 0;
           }
@@ -155,18 +154,15 @@ export const BombGame = ({ onBack }: BombGameProps) => {
         }
       };
     }
-  }, [phase, playSound, stopTicking, stopDrone, stopPeriodicGlitches, clearGlitch]);
+  }, [phase, playExplosion, stopTicking, stopPeriodicGlitches, clearGlitch]);
 
-  // Update ticking and drone based on time remaining
+  // Update ticking intensity based on time remaining
   useEffect(() => {
     if (phase === 'playing' && timeLeft > 0 && totalTime > 0) {
       const intensity = 1 - (timeLeft / totalTime);
-      startTicking(1 + intensity * 9);
-      updateDroneIntensity(intensity);
-    } else {
-      stopTicking();
+      updateIntensity(intensity);
     }
-  }, [phase, timeLeft, totalTime, startTicking, stopTicking, updateDroneIntensity]);
+  }, [phase, timeLeft, totalTime, updateIntensity]);
 
   // Add player
   const handleAddPlayer = useCallback(() => {
@@ -186,6 +182,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
   const startGame = useCallback(async (category: BombCategory) => {
     // Initialize audio on user interaction (bypasses autoplay policy)
     await initAudio();
+    activateAudio();
     
     setSelectedCategory(category);
     setUsedWords([]);
@@ -206,8 +203,8 @@ export const BombGame = ({ onBack }: BombGameProps) => {
       setCurrentWord(category.name);
     }
     
-    // Start audio after user interaction
-    startDrone();
+    // Start ticking audio
+    startTicking();
     
     // Start periodic glitches if enabled
     if (glitchModeEnabled) {
@@ -215,7 +212,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
     }
     
     setPhase('playing');
-  }, [usedWords, initAudio, startDrone, glitchModeEnabled, startPeriodicGlitches]);
+  }, [usedWords, initAudio, activateAudio, startTicking, glitchModeEnabled, startPeriodicGlitches]);
 
   // Pass the bomb
   const passBomb = useCallback(() => {
@@ -226,7 +223,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
       return; // Glitch happened, don't pass
     }
     
-    playSound('click');
+    playClick();
     
     // Next player
     setCurrentPlayerIndex(prev => (prev + 1) % Math.max(1, players.length));
@@ -238,7 +235,7 @@ export const BombGame = ({ onBack }: BombGameProps) => {
       setCurrentWord(word);
       setUsedWords(prev => [...prev, word]);
     }
-  }, [selectedCategory, players.length, usedWords, playSound, checkGlitchOnPress]);
+  }, [selectedCategory, players.length, usedWords, playClick, checkGlitchOnPress]);
 
   // Continue after explosion - show punishment
   const handleExplosionComplete = useCallback(() => {
@@ -252,11 +249,11 @@ export const BombGame = ({ onBack }: BombGameProps) => {
 
   // Handle back
   const handleBack = useCallback(() => {
-    deactivate();
+    deactivateAudio();
     stopPeriodicGlitches();
     clearGlitch();
     onBack();
-  }, [deactivate, stopPeriodicGlitches, clearGlitch, onBack]);
+  }, [deactivateAudio, stopPeriodicGlitches, clearGlitch, onBack]);
 
   // Calculate intensity for visuals
   const intensity = totalTime > 0 ? 1 - (timeLeft / totalTime) : 0;
