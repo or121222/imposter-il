@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { User, ChevronLeft } from 'lucide-react';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface ArtistPassingScreenProps {
   playerName: string;
@@ -14,6 +16,15 @@ export const ArtistPassingScreen = ({
   totalPlayers,
   onReady,
 }: ArtistPassingScreenProps) => {
+  const sounds = useSoundEffects();
+  const { vibrate } = useHaptics();
+
+  const handleReady = () => {
+    sounds.playSound('click');
+    vibrate('medium');
+    onReady();
+  };
+
   return (
     <motion.div
       className="glass-card-strong p-8 max-w-sm mx-auto text-center"
@@ -59,7 +70,7 @@ export const ArtistPassingScreen = ({
 
       {/* Ready button */}
       <motion.button
-        onClick={onReady}
+        onClick={handleReady}
         className="btn-neon-magenta w-full flex items-center justify-center gap-2"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}

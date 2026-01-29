@@ -105,6 +105,21 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
     }
   };
 
+  // Delete player entirely (from both game and scoring)
+  const handleDeletePlayer = (playerId: string) => {
+    const player = playerScores.find(p => p.id === playerId);
+    if (player) {
+      // Remove from game state
+      const gamePlayer = state.players.find(p => p.name.toLowerCase() === player.name.toLowerCase());
+      if (gamePlayer) {
+        removePlayer(gamePlayer.id);
+      }
+      // Remove from scoring
+      removePlayerScore(playerId);
+      soundEffects.playSound('click');
+    }
+  };
+
   const handleStartGame = () => {
     soundEffects.playSound('success');
     vibrate('success');
@@ -208,7 +223,7 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
                 onAddPlayer={handleAddPlayer}
                 onRemovePlayer={removePlayer}
                 onTogglePlayer={handleTogglePlayerActive}
-                onDeletePlayer={removePlayerScore}
+                onDeletePlayer={handleDeletePlayer}
               />
 
               <SettingsPanel

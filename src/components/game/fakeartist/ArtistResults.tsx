@@ -1,7 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, XCircle, HelpCircle, Check, X, RotateCcw, Home, User } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface Player {
   id: string;
@@ -34,6 +36,8 @@ export const ArtistResults = ({
 }: ArtistResultsProps) => {
   const [showGuessPhase, setShowGuessPhase] = useState(false);
   const [revealedFake, setRevealedFake] = useState(false);
+  const sounds = useSoundEffects();
+  const { vibrate } = useHaptics();
 
   // Count votes for each player
   const voteCounts = useMemo(() => {
@@ -71,17 +75,56 @@ export const ArtistResults = ({
     return !fakeGuessedCorrectly;
   }, [fakeCaught, fakeGuessedCorrectly]);
 
-  // Trigger confetti when artists win
+  // Trigger confetti and sound when artists win
   useEffect(() => {
     if (artistsWin === true) {
+      sounds.playSound('success');
+      vibrate('success');
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
         colors: ['#00FFFF', '#FF00FF', '#00FF00', '#FFFF00'],
       });
+    } else if (artistsWin === false) {
+      sounds.playSound('imposter');
+      vibrate('error');
     }
-  }, [artistsWin]);
+  }, [artistsWin, sounds, vibrate]);
+
+  // Handle guess button clicks
+  const handleGuessYes = useCallback(() => {
+    sounds.playSound('click');
+    vibrate('medium');
+    onFakeGuess(true);
+  }, [sounds, vibrate, onFakeGuess]);
+
+  const handleGuessNo = useCallback(() => {
+    sounds.playSound('click');
+    vibrate('medium');
+    onFakeGuess(false);
+  }, [sounds, vibrate, onFakeGuess]);
+
+  // Handle continue to guess phase
+  const handleContinueToGuess = useCallback(() => {
+    sounds.playSound('click');
+    vibrate('medium');
+    setRevealedFake(true);
+    setShowGuessPhase(true);
+  }, [sounds, vibrate]);
+
+  // Handle play again and back to hub
+  const handlePlayAgain = useCallback(() => {
+    sounds.playSound('click');
+    vibrate('medium');
+    onPlayAgain();
+  }, [sounds, vibrate, onPlayAgain]);
+
+  const handleBackToHub = useCallback(() => {
+    sounds.playSound('click');
+    vibrate('medium');
+    onBackToHub();
+  }, [sounds, vibrate, onBackToHub]);
 
   // Sorted players by votes
   const sortedPlayers = useMemo(() => {
@@ -135,10 +178,7 @@ export const ArtistResults = ({
           </p>
 
           <motion.button
-            onClick={() => {
-              setRevealedFake(true);
-              setShowGuessPhase(true);
-            }}
+            onClick={handleContinueToGuess}
             className="btn-neon-magenta w-full"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -188,7 +228,7 @@ export const ArtistResults = ({
 
           <div className="flex gap-3">
             <motion.button
-              onClick={() => onFakeGuess(true)}
+              onClick={handleGuessYes}
               className="flex-1 btn-neon-magenta flex items-center justify-center gap-2"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -197,7 +237,7 @@ export const ArtistResults = ({
               <span>כן!</span>
             </motion.button>
             <motion.button
-              onClick={() => onFakeGuess(false)}
+              onClick={handleGuessNo}
               className="flex-1 btn-neon flex items-center justify-center gap-2"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -314,7 +354,7 @@ export const ArtistResults = ({
       {/* Action Buttons */}
       <div className="flex gap-3 mt-auto">
         <motion.button
-          onClick={onPlayAgain}
+          onClick={handlePlayAgain}
           className="flex-1 btn-neon-magenta flex items-center justify-center gap-2"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -323,7 +363,7 @@ export const ArtistResults = ({
           <span>משחק חדש</span>
         </motion.button>
         <motion.button
-          onClick={onBackToHub}
+          onClick={handleBackToHub}
           className="flex-1 btn-neon flex items-center justify-center gap-2"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}

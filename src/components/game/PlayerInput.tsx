@@ -91,7 +91,7 @@ export const PlayerInput = ({
           {sortedAllPlayers.map((player) => (
             <motion.div
               key={player.id}
-              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+              className={`group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
                 player.isActive
                   ? 'bg-primary/10 border border-primary/30'
                   : 'bg-muted/20 border border-transparent opacity-60'
@@ -122,7 +122,7 @@ export const PlayerInput = ({
                   e.stopPropagation();
                   onDeletePlayer(player.id);
                 }}
-                className="p-2 rounded-full hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-2 rounded-full hover:bg-destructive/20 opacity-50 group-hover:opacity-100 transition-opacity"
               >
                 <Trash2 className="w-4 h-4 text-destructive" />
               </button>

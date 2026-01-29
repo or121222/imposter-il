@@ -57,10 +57,22 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
     playerScores,
     addOrUpdatePlayer,
     togglePlayerActive,
-    removePlayer: removePlayerScore,
+    removePlayer: removePlayerFromScoring,
     resetScores,
     getActivePlayers,
   } = useScoring();
+
+  // Delete player entirely (from both game and scoring)
+  const handleDeletePlayer = useCallback((playerId: string) => {
+    const player = playerScores.find(p => p.id === playerId);
+    if (player) {
+      // Remove from game state
+      setPlayers(prev => prev.filter(p => p.name.toLowerCase() !== player.name.toLowerCase()));
+      // Remove from scoring
+      removePlayerFromScoring(playerId);
+      soundEffects.playSound('click');
+    }
+  }, [playerScores, removePlayerFromScoring, soundEffects]);
 
   // Sync active players from localStorage - wait for playerScores to load
   useEffect(() => {
@@ -282,7 +294,7 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
                 onAddPlayer={handleAddPlayer}
                 onRemovePlayer={removePlayer}
                 onTogglePlayer={handleTogglePlayerActive}
-                onDeletePlayer={removePlayerScore}
+                onDeletePlayer={handleDeletePlayer}
               />
 
               <motion.button

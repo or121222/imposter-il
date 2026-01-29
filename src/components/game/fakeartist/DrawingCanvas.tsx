@@ -1,6 +1,8 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Pencil, Eraser, Check, RotateCcw } from 'lucide-react';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface Player {
   id: string;
@@ -34,6 +36,8 @@ export const DrawingCanvas = ({
   const [tool, setTool] = useState<Tool>('draw');
   const [hasDrawn, setHasDrawn] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const sounds = useSoundEffects();
+  const { vibrate } = useHaptics();
 
   // Initialize canvas
   useEffect(() => {
@@ -172,7 +176,16 @@ export const DrawingCanvas = ({
     }
 
     setHasDrawn(false);
-  }, [canvasData]);
+    sounds.playSound('click');
+    vibrate('light');
+  }, [canvasData, sounds, vibrate]);
+
+  // Handle tool change
+  const handleToolChange = useCallback((newTool: Tool) => {
+    setTool(newTool);
+    sounds.playSound('click');
+    vibrate('light');
+  }, [sounds, vibrate]);
 
   // Handle done
   const handleDone = useCallback(() => {
@@ -180,8 +193,10 @@ export const DrawingCanvas = ({
     if (!canvas) return;
 
     const newCanvasData = canvas.toDataURL('image/png');
+    sounds.playSound('success');
+    vibrate('success');
     onComplete(newCanvasData);
-  }, [onComplete]);
+  }, [onComplete, sounds, vibrate]);
 
   return (
     <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
@@ -234,7 +249,7 @@ export const DrawingCanvas = ({
           {/* Tools */}
           <div className="flex gap-2">
             <button
-              onClick={() => setTool('draw')}
+              onClick={() => handleToolChange('draw')}
               className={`p-3 rounded-xl transition-all ${
                 tool === 'draw'
                   ? 'bg-secondary text-white shadow-lg'
@@ -247,7 +262,7 @@ export const DrawingCanvas = ({
               <Pencil className="w-6 h-6" />
             </button>
             <button
-              onClick={() => setTool('erase')}
+              onClick={() => handleToolChange('erase')}
               className={`p-3 rounded-xl transition-all ${
                 tool === 'erase'
                   ? 'bg-destructive text-white shadow-lg'
