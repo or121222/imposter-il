@@ -260,17 +260,17 @@ export const GameHub = () => {
           <p className="text-muted-foreground">בחרו משחק והתחילו לשחק!</p>
         </motion.div>
 
-        {/* Game Cards */}
-        <div className="w-full space-y-4">
+        {/* Game Cards - 2x2 Grid */}
+        <div className="w-full grid grid-cols-2 gap-3">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
             <GameCard
               title="המתחזה"
               subtitle="מי מסתיר את האמת?"
-              icon={<Users className="w-10 h-10 text-white" />}
+              icon={<Users className="w-8 h-8 text-white" />}
               gradient="linear-gradient(135deg, hsl(186 100% 50%), hsl(220 100% 60%))"
               glowColor="hsl(186 100% 50%)"
               onPlay={() => setCurrentGame('imposter')}
@@ -279,14 +279,14 @@ export const GameHub = () => {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
           >
             <GameCard
               title="הצייר המזויף"
               subtitle="מי מצייר בלי לדעת מה?"
-              icon={<Palette className="w-10 h-10 text-white" />}
+              icon={<Palette className="w-8 h-8 text-white" />}
               gradient="linear-gradient(135deg, hsl(320 100% 60%), hsl(270 100% 60%))"
               glowColor="hsl(320 100% 60%)"
               onPlay={() => setCurrentGame('artist')}
@@ -295,14 +295,14 @@ export const GameHub = () => {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
           >
             <GameCard
               title="הפצצה"
               subtitle="תעביר לפני שזה מתפוצץ! 💥"
-              icon={<Bomb className="w-10 h-10 text-white" />}
+              icon={<Bomb className="w-8 h-8 text-white" />}
               gradient="linear-gradient(135deg, hsl(30 100% 50%), hsl(15 100% 50%))"
               glowColor="hsl(30 100% 50%)"
               onPlay={() => setCurrentGame('bomb')}
@@ -311,14 +311,14 @@ export const GameHub = () => {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
           >
             <GameCard
               title="דייט לילי"
               subtitle="כמה אתם מכירים אחד את השני? 💕"
-              icon={<Heart className="w-10 h-10 text-white" />}
+              icon={<Heart className="w-8 h-8 text-white" />}
               gradient="linear-gradient(135deg, hsl(330 90% 55%), hsl(280 90% 50%))"
               glowColor="hsl(330 90% 55%)"
               onPlay={() => setCurrentGame('datenight')}
