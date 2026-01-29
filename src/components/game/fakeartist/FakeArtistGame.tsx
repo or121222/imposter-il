@@ -13,7 +13,7 @@ import { ArtistVotingScreen } from './ArtistVotingScreen';
 import { ArtistResults } from './ArtistResults';
 import { GlobalControls, GlobalFooter } from '../GlobalControls';
 import { useScoring, PlayerScore } from '@/hooks/useScoring';
-import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
+import { useGameAudio, setGlobalGameAudio } from '@/hooks/useGameAudio';
 import { useEditableDrawingCategories } from '@/hooks/useEditableDrawingCategories';
 import { playerColors } from '@/data/drawingCategories';
 
@@ -61,8 +61,16 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
   const [settings, setSettings] = useState<ArtistGameSettings>(DEFAULT_SETTINGS);
   const hasSyncedRef = useRef(false);
   
-  const soundEffects = useSoundEffects();
-  setGlobalSoundEffects(soundEffects);
+  // Use unified game audio
+  const gameAudio = useGameAudio();
+  setGlobalGameAudio(gameAudio);
+  
+  // Create a compatible interface for existing code
+  const soundEffects = {
+    playSound: (type: 'click' | 'reveal' | 'imposter' | 'success' | 'tick') => {
+      gameAudio.playSound(type);
+    }
+  };
 
   const {
     allCategories: drawingCategories,
