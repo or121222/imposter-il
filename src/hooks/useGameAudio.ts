@@ -255,7 +255,52 @@ export type GameSoundType =
   | 'imposter' 
   | 'success' 
   | 'explosion'
-  | 'scribble';
+  | 'scribble'
+  | 'match'
+  | 'nomatch';
+
+// Romantic match sound
+const synthesizeMatch = (ctx: AudioContext) => {
+  // Happy ascending two-note chime
+  const frequencies = [523.25, 783.99]; // C5, G5
+  
+  frequencies.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+    
+    gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + i * 0.12 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.4);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start(ctx.currentTime + i * 0.12);
+    osc.stop(ctx.currentTime + i * 0.12 + 0.4);
+  });
+};
+
+// No match sound - softer descending tone
+const synthesizeNoMatch = (ctx: AudioContext) => {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(400, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.2);
+  
+  gain.gain.setValueAtTime(0.2, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.25);
+};
 
 export const useGameAudio = () => {
   const [audioState, setAudioState] = useState<AudioState>({
@@ -314,6 +359,12 @@ export const useGameAudio = () => {
           break;
         case 'scribble':
           synthesizeScribble(ctx);
+          break;
+        case 'match':
+          synthesizeMatch(ctx);
+          break;
+        case 'nomatch':
+          synthesizeNoMatch(ctx);
           break;
       }
     } catch (e) {

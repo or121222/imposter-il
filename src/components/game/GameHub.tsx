@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Users, HelpCircle, Download, Sparkles, Bomb } from 'lucide-react';
+import { Palette, Users, HelpCircle, Download, Sparkles, Bomb, Heart } from 'lucide-react';
 import { GameLogo } from './GameLogo';
 import ImposterGame from './ImposterGame';
 import FakeArtistGame from './fakeartist/FakeArtistGame';
 import BombGame from './bomb/BombGame';
+import DateNightGame from './datenight/DateNightGame';
 import { GlobalControls, GlobalFooter } from './GlobalControls';
 import { InstallPrompt } from './InstallPrompt';
 
-type GameType = 'hub' | 'imposter' | 'artist' | 'bomb';
+type GameType = 'hub' | 'imposter' | 'artist' | 'bomb' | 'datenight';
 
 interface GameCardProps {
   title: string;
@@ -87,7 +88,7 @@ const RulesModal = ({
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
-  gameType: 'imposter' | 'artist' | 'bomb'
+  gameType: 'imposter' | 'artist' | 'bomb' | 'datenight'
 }) => {
   if (!isOpen) return null;
 
@@ -113,13 +114,29 @@ const RulesModal = ({
     "מי שהפצצה מתפוצצת עליו - שותה! 🍺",
   ];
 
-  const rules = gameType === 'imposter' ? imposterRules : gameType === 'artist' ? artistRules : bombRules;
-  const title = gameType === 'imposter' ? 'המתחזה' : gameType === 'artist' ? 'הצייר המזויף' : 'הפצצה';
+  const dateNightRules = [
+    "שבו גב אל גב או עצמו עיניים.",
+    "קראו את השאלה ביחד.",
+    "ספרו 3-2-1 והצביעו על התשובה.",
+    "אם ענינו אותו דבר - לחצו ✓",
+    "בסוף תקבלו ציון סנכרון! 💕",
+  ];
+
+  const rules = gameType === 'imposter' ? imposterRules 
+    : gameType === 'artist' ? artistRules 
+    : gameType === 'bomb' ? bombRules 
+    : dateNightRules;
+  const title = gameType === 'imposter' ? 'המתחזה' 
+    : gameType === 'artist' ? 'הצייר המזויף' 
+    : gameType === 'bomb' ? 'הפצצה' 
+    : 'דייט לילי';
   const gradient = gameType === 'imposter' 
     ? 'linear-gradient(135deg, hsl(186 100% 50%), hsl(220 100% 60%))'
     : gameType === 'artist' 
     ? 'linear-gradient(135deg, hsl(320 100% 60%), hsl(270 100% 60%))'
-    : 'linear-gradient(135deg, hsl(30 100% 50%), hsl(15 100% 50%))';
+    : gameType === 'bomb'
+    ? 'linear-gradient(135deg, hsl(30 100% 50%), hsl(15 100% 50%))'
+    : 'linear-gradient(135deg, hsl(330 90% 55%), hsl(280 90% 50%))';
 
   return (
     <AnimatePresence>
@@ -142,15 +159,17 @@ const RulesModal = ({
               className="p-2 rounded-xl"
               style={{ background: gradient }}
             >
-              {gameType === 'imposter' ? (
-                <Users className="w-6 h-6 text-white" />
-              ) : gameType === 'artist' ? (
-                <Palette className="w-6 h-6 text-white" />
-              ) : (
-                <Bomb className="w-6 h-6 text-white" />
-              )}
-            </div>
-            <h2 className="text-2xl font-black">{title}</h2>
+            {gameType === 'imposter' ? (
+              <Users className="w-6 h-6 text-white" />
+            ) : gameType === 'artist' ? (
+              <Palette className="w-6 h-6 text-white" />
+            ) : gameType === 'bomb' ? (
+              <Bomb className="w-6 h-6 text-white" />
+            ) : (
+              <Heart className="w-6 h-6 text-white" />
+            )}
+          </div>
+          <h2 className="text-2xl font-black">{title}</h2>
           </div>
 
           <div className="space-y-3 mb-6">
@@ -187,7 +206,7 @@ const RulesModal = ({
 
 export const GameHub = () => {
   const [currentGame, setCurrentGame] = useState<GameType>('hub');
-  const [rulesModal, setRulesModal] = useState<{ open: boolean; type: 'imposter' | 'artist' | 'bomb' }>({
+  const [rulesModal, setRulesModal] = useState<{ open: boolean; type: 'imposter' | 'artist' | 'bomb' | 'datenight' }>({
     open: false,
     type: 'imposter',
   });
@@ -203,6 +222,10 @@ export const GameHub = () => {
 
   if (currentGame === 'bomb') {
     return <BombGame onBack={() => setCurrentGame('hub')} />;
+  }
+
+  if (currentGame === 'datenight') {
+    return <DateNightGame onBack={() => setCurrentGame('hub')} />;
   }
 
   return (
@@ -284,6 +307,22 @@ export const GameHub = () => {
               glowColor="hsl(30 100% 50%)"
               onPlay={() => setCurrentGame('bomb')}
               onHelp={() => setRulesModal({ open: true, type: 'bomb' })}
+            />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <GameCard
+              title="דייט לילי"
+              subtitle="כמה אתם מכירים אחד את השני? 💕"
+              icon={<Heart className="w-10 h-10 text-white" />}
+              gradient="linear-gradient(135deg, hsl(330 90% 55%), hsl(280 90% 50%))"
+              glowColor="hsl(330 90% 55%)"
+              onPlay={() => setCurrentGame('datenight')}
+              onHelp={() => setRulesModal({ open: true, type: 'datenight' })}
             />
           </motion.div>
         </div>
