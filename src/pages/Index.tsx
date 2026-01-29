@@ -1,7 +1,7 @@
-import ImposterGame from '@/components/game/ImposterGame';
+import GameHub from '@/components/game/GameHub';
 
 const Index = () => {
-  return <ImposterGame />;
+  return <GameHub />;
 };
 
 export default Index;
