@@ -9,6 +9,7 @@ interface ArtistRoleRevealProps {
   category: string;
   categoryEmoji: string;
   hasSeenRole: boolean;
+  showHint?: boolean; // Whether fake sees category hint
   onShowRole: () => void;
   onNext: () => void;
   isLastPlayer: boolean;
@@ -22,6 +23,7 @@ export const ArtistRoleReveal = ({
   category,
   categoryEmoji,
   hasSeenRole,
+  showHint = true,
   onShowRole,
   onNext,
   isLastPlayer,
@@ -146,6 +148,18 @@ export const ArtistRoleReveal = ({
                   <p className="text-sm text-muted-foreground">המטרה שלך:</p>
                   <p className="font-bold text-secondary">לגלות מה המילה ולהשתלב בציור!</p>
                 </motion.div>
+
+                {showHint && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="p-3 rounded-xl bg-secondary/5 border border-secondary/10"
+                  >
+                    <p className="text-xs text-muted-foreground">רמז - הקטגוריה היא:</p>
+                    <p className="font-bold text-secondary">{categoryEmoji} {category}</p>
+                  </motion.div>
+                )}
               </>
             ) : (
               <>

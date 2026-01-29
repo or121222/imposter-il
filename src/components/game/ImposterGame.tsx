@@ -127,16 +127,7 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
   };
 
   const handleRevealCard = () => {
-    if (currentPlayer?.role === 'imposter') {
-      soundEffects.playSound('imposter');
-      vibrate('heavy');
-    } else if (currentPlayer?.role === 'accomplice') {
-      soundEffects.playSound('imposter');
-      vibrate('heavy');
-    } else {
-      soundEffects.playSound('reveal');
-      vibrate('medium');
-    }
+    // Sound is now handled inside CardReveal when user clicks to reveal
     revealCard();
   };
 

@@ -4,9 +4,11 @@ import { ArrowRight, ChevronLeft } from 'lucide-react';
 import { PlayerInput } from '../PlayerInput';
 import { ScoreBoard } from '../ScoreBoard';
 import { DrawingCategorySelector } from './DrawingCategorySelector';
+import { ArtistSettingsPanel, type ArtistGameSettings } from './ArtistSettingsPanel';
 import { ArtistPassingScreen } from './ArtistPassingScreen';
 import { ArtistRoleReveal } from './ArtistRoleReveal';
 import { DrawingCanvas } from './DrawingCanvas';
+import { ArtistPostDrawingScreen } from './ArtistPostDrawingScreen';
 import { ArtistVotingScreen } from './ArtistVotingScreen';
 import { ArtistResults } from './ArtistResults';
 import { GlobalControls, GlobalFooter } from '../GlobalControls';
@@ -14,7 +16,7 @@ import { useScoring, PlayerScore } from '@/hooks/useScoring';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
 import { drawingCategories, getRandomDrawingWord, playerColors } from '@/data/drawingCategories';
 
-type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'drawing' | 'voting' | 'results';
+type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'drawing' | 'post-drawing' | 'voting' | 'results';
 
 interface Player {
   id: string;
@@ -33,6 +35,14 @@ interface FakeArtistGameProps {
   onBack: () => void;
 }
 
+const DEFAULT_SETTINGS: ArtistGameSettings = {
+  timerEnabled: false,
+  timerDuration: 5,
+  fakeHint: true,
+  fakeNeverStarts: false,
+  drawingRounds: 2,
+};
+
 export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
   const [phase, setPhase] = useState<GamePhase>('setup');
   const [players, setPlayers] = useState<Player[]>([]);
@@ -44,10 +54,10 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [hasSeenRole, setHasSeenRole] = useState(false);
   const [drawingRound, setDrawingRound] = useState(1);
-  const [maxDrawingRounds] = useState(2);
   const [votes, setVotes] = useState<Record<string, string>>({});
   const [fakeGuessedCorrectly, setFakeGuessedCorrectly] = useState<boolean | null>(null);
   const [canvasData, setCanvasData] = useState<string | null>(null);
+  const [settings, setSettings] = useState<ArtistGameSettings>(DEFAULT_SETTINGS);
   const hasSyncedRef = useRef(false);
   
   const soundEffects = useSoundEffects();
@@ -73,6 +83,11 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
       soundEffects.playSound('click');
     }
   }, [playerScores, removePlayerFromScoring, soundEffects]);
+
+  // Update settings
+  const updateSettings = useCallback((newSettings: Partial<ArtistGameSettings>) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
+  }, []);
 
   // Sync active players from localStorage - wait for playerScores to load
   useEffect(() => {
@@ -161,11 +176,22 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
     }));
 
     setRoles(newRoles);
-    setCurrentPlayerIndex(0);
+
+    // Determine starting player based on settings
+    let startIndex = 0;
+    if (settings.fakeNeverStarts) {
+      // Find a non-fake player to start
+      const nonFakeIndices = players.map((_, i) => i).filter(i => i !== fakeIndex);
+      if (nonFakeIndices.length > 0) {
+        startIndex = nonFakeIndices[Math.floor(Math.random() * nonFakeIndices.length)];
+      }
+    }
+    
+    setCurrentPlayerIndex(startIndex);
     setHasSeenRole(false);
     setPhase('passing');
     soundEffects.playSound('click');
-  }, [selectedCategory, players, soundEffects]);
+  }, [selectedCategory, players, settings.fakeNeverStarts, soundEffects]);
 
   // Handle role reveal
   const handleShowRole = useCallback(() => {
@@ -182,11 +208,21 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
       setPhase('passing');
     } else {
       // All players have seen their roles, start drawing
-      setCurrentPlayerIndex(0);
+      // Find starting player based on settings
+      const fakeRole = roles.find(r => r.isFake);
+      const fakePlayerIndex = fakeRole ? players.findIndex(p => p.id === fakeRole.playerId) : -1;
+      
+      let startDrawingIndex = 0;
+      if (settings.fakeNeverStarts && fakePlayerIndex === 0) {
+        // If fake is first and shouldn't start, pick next player
+        startDrawingIndex = 1 % players.length;
+      }
+      
+      setCurrentPlayerIndex(startDrawingIndex);
       setPhase('drawing');
     }
     soundEffects.playSound('click');
-  }, [currentPlayerIndex, players.length, soundEffects]);
+  }, [currentPlayerIndex, players, roles, settings.fakeNeverStarts, soundEffects]);
 
   // Handle drawing turn complete
   const handleDrawingComplete = useCallback((newCanvasData: string) => {
@@ -196,9 +232,9 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
     
     if (nextPlayerIndex >= players.length) {
       // Round complete
-      if (drawingRound >= maxDrawingRounds) {
-        // All rounds complete, go to voting
-        setPhase('voting');
+      if (drawingRound >= settings.drawingRounds) {
+        // All rounds complete, go to post-drawing screen
+        setPhase('post-drawing');
       } else {
         // Start next round
         setDrawingRound(prev => prev + 1);
@@ -209,7 +245,19 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
     }
     
     soundEffects.playSound('click');
-  }, [currentPlayerIndex, players.length, drawingRound, maxDrawingRounds, soundEffects]);
+  }, [currentPlayerIndex, players.length, drawingRound, settings.drawingRounds, soundEffects]);
+
+  // Handle go to voting
+  const handleGoToVoting = useCallback(() => {
+    setPhase('voting');
+    soundEffects.playSound('click');
+  }, [soundEffects]);
+
+  // Handle skip to results
+  const handleSkipToResults = useCallback(() => {
+    setPhase('results');
+    soundEffects.playSound('click');
+  }, [soundEffects]);
 
   // Handle voting
   const handleVote = useCallback((voterId: string, suspectId: string) => {
@@ -297,6 +345,12 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
                 onDeletePlayer={handleDeletePlayer}
               />
 
+              {/* Settings Panel */}
+              <ArtistSettingsPanel
+                settings={settings}
+                onUpdateSettings={updateSettings}
+              />
+
               <motion.button
                 onClick={() => setPhase('category')}
                 disabled={players.length < 3}
@@ -367,6 +421,7 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
               category={categoryName}
               categoryEmoji={categoryEmoji}
               hasSeenRole={hasSeenRole}
+              showHint={settings.fakeHint}
               onShowRole={handleShowRole}
               onNext={handleNextPlayer}
               isLastPlayer={currentPlayerIndex === players.length - 1}
@@ -386,11 +441,28 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
             <DrawingCanvas
               currentPlayer={currentPlayer}
               round={drawingRound}
-              maxRounds={maxDrawingRounds}
+              maxRounds={settings.drawingRounds}
               playerIndex={currentPlayerIndex}
               totalPlayers={players.length}
               canvasData={canvasData}
               onComplete={handleDrawingComplete}
+            />
+          </motion.div>
+        )}
+
+        {/* Post-Drawing Screen - Choice between voting and skip */}
+        {phase === 'post-drawing' && (
+          <motion.div
+            key="post-drawing"
+            className="flex-1 flex flex-col"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ArtistPostDrawingScreen
+              canvasData={canvasData}
+              onGoToVoting={handleGoToVoting}
+              onSkipToResults={handleSkipToResults}
             />
           </motion.div>
         )}
