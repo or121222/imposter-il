@@ -61,6 +61,17 @@ const ImposterGame = () => {
     setGlobalSoundEffects(soundEffects);
   }, [soundEffects]);
 
+  // Sync players from scoring system on mount
+  useEffect(() => {
+    const activePlayers = getActivePlayers();
+    activePlayers.forEach(player => {
+      const alreadyInGame = state.players.some(p => p.name.toLowerCase() === player.name.toLowerCase());
+      if (!alreadyInGame) {
+        addPlayer(player.name);
+      }
+    });
+  }, []);
+
   // Add players to scoring system when they are added
   const handleAddPlayer = (name: string) => {
     addPlayer(name);
