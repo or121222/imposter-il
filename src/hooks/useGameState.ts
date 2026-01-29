@@ -66,7 +66,7 @@ const initialState: GameState = {
   votes: {},
 };
 
-export const useGameState = (customCategories: Category[] = []) => {
+export const useGameState = (allCategories: Category[] = []) => {
   const [state, setState] = useState<GameState>(initialState);
 
   const addPlayer = useCallback((name: string) => {
@@ -120,7 +120,8 @@ export const useGameState = (customCategories: Category[] = []) => {
     }
 
     // Get secret word pair (for confused role)
-    const { wordA, wordB } = getRandomWordPair(state.selectedCategory, customCategories);
+    // Use allCategories which already includes both default and edited categories
+    const { wordA, wordB } = getRandomWordPair(state.selectedCategory, allCategories);
     const secretWord = wordA;
     const confusedWord = wordB;
 
