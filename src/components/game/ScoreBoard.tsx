@@ -1,19 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, RotateCcw, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trophy, RotateCcw, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import type { PlayerScore } from '@/hooks/useScoring';
 
 interface ScoreBoardProps {
   playerScores: PlayerScore[];
-  onToggleActive: (playerId: string) => void;
-  onRemovePlayer: (playerId: string) => void;
   onResetScores: () => void;
 }
 
 export const ScoreBoard = ({
   playerScores,
-  onToggleActive,
-  onRemovePlayer,
   onResetScores,
 }: ScoreBoardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -21,7 +17,6 @@ export const ScoreBoard = ({
 
   // Sort by wins (descending)
   const sortedPlayers = [...playerScores].sort((a, b) => b.wins - a.wins);
-  const activeCount = playerScores.filter(p => p.isActive).length;
 
   if (playerScores.length === 0) return null;
 
@@ -35,7 +30,7 @@ export const ScoreBoard = ({
           <Trophy className="w-5 h-5 text-primary" />
           <span className="font-bold">טבלת ניקוד</span>
           <span className="text-xs text-muted-foreground">
-            ({activeCount} פעילים)
+            ({playerScores.length} שחקנים)
           </span>
         </div>
         {isExpanded ? (
@@ -55,22 +50,13 @@ export const ScoreBoard = ({
             className="overflow-hidden"
           >
             <div className="pt-4 space-y-2">
-              <p className="text-xs text-muted-foreground text-center mb-2">
-                לחץ על שחקן כדי להפעיל/לכבות
-              </p>
-              
               {sortedPlayers.map((player, index) => (
                 <motion.div
                   key={player.id}
-                  className={`p-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer ${
-                    player.isActive
-                      ? 'bg-primary/10 border border-primary/30'
-                      : 'bg-muted/20 border border-transparent opacity-50'
-                  }`}
+                  className="p-3 rounded-xl flex items-center gap-3 bg-primary/10 border border-primary/30"
                   initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: player.isActive ? 1 : 0.5, x: 0 }}
+                  animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => onToggleActive(player.id)}
                 >
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                     index === 0 && player.wins > 0
@@ -91,16 +77,6 @@ export const ScoreBoard = ({
                     <span className="text-muted-foreground">/</span>
                     <span className="text-destructive">{player.losses}L</span>
                   </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemovePlayer(player.id);
-                    }}
-                    className="p-1 rounded-full hover:bg-destructive/20"
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </button>
                 </motion.div>
               ))}
 

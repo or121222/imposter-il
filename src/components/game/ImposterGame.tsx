@@ -209,15 +209,16 @@ const ImposterGame = () => {
               {/* Score Board */}
               <ScoreBoard
                 playerScores={playerScores}
-                onToggleActive={handleTogglePlayerActive}
-                onRemovePlayer={removePlayerScore}
                 onResetScores={resetScores}
               />
 
               <PlayerInput
                 players={state.players}
+                allPlayers={playerScores}
                 onAddPlayer={handleAddPlayer}
                 onRemovePlayer={removePlayer}
+                onTogglePlayer={handleTogglePlayerActive}
+                onDeletePlayer={removePlayerScore}
               />
 
               <SettingsPanel
