@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Vote, ChevronLeft, User } from 'lucide-react';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useHaptics } from '@/hooks/useHaptics';
 
 interface Player {
   id: string;
@@ -26,18 +28,24 @@ export const ArtistVotingScreen = ({
   const [currentVoterIndex, setCurrentVoterIndex] = useState(0);
   const [isRevealing, setIsRevealing] = useState(false);
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
+  const sounds = useSoundEffects();
+  const { vibrate } = useHaptics();
 
   const currentVoter = players[currentVoterIndex];
   const hasVoted = currentVoter && votes[currentVoter.id];
 
   const handleSelectSuspect = useCallback((suspectId: string) => {
     setSelectedSuspect(suspectId);
-  }, []);
+    sounds.playSound('tick');
+    vibrate('light');
+  }, [sounds, vibrate]);
 
   const handleConfirmVote = useCallback(() => {
     if (!selectedSuspect || !currentVoter) return;
 
     onVote(currentVoter.id, selectedSuspect);
+    sounds.playSound('click');
+    vibrate('medium');
 
     if (currentVoterIndex < players.length - 1) {
       setCurrentVoterIndex(prev => prev + 1);
@@ -46,11 +54,13 @@ export const ArtistVotingScreen = ({
     } else {
       onComplete();
     }
-  }, [selectedSuspect, currentVoter, currentVoterIndex, players.length, onVote, onComplete]);
+  }, [selectedSuspect, currentVoter, currentVoterIndex, players.length, onVote, onComplete, sounds, vibrate]);
 
   const handleShowVoting = useCallback(() => {
     setIsRevealing(true);
-  }, []);
+    sounds.playSound('click');
+    vibrate('medium');
+  }, [sounds, vibrate]);
 
   if (!currentVoter) return null;
 
