@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, ChevronLeft } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useGameState } from '@/hooks/useGameState';
-import { useCustomCategories } from '@/hooks/useCustomCategories';
+import { useEditableCategories } from '@/hooks/useEditableCategories';
 import { useScoring } from '@/hooks/useScoring';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -23,7 +23,16 @@ interface ImposterGameProps {
 }
 
 const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
-  const { customCategories, addCategory, updateCategory, removeCategory } = useCustomCategories();
+  const { 
+    allCategories, 
+    customCategories,
+    addCategory, 
+    updateCategory, 
+    removeCategory,
+    resetToDefault,
+    isCustom,
+    isEdited,
+  } = useEditableCategories();
   const {
     playerScores,
     addOrUpdatePlayer,
@@ -49,7 +58,7 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
     hideCard,
     setVotes,
     resetGame,
-  } = useGameState(customCategories);
+  } = useGameState(allCategories);
 
   const soundEffects = useSoundEffects();
   const { vibrate } = useHaptics();
@@ -262,10 +271,13 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
               <CategorySelector
                 selectedCategory={state.selectedCategory}
                 onSelectCategory={selectCategory}
-                customCategories={customCategories}
+                allCategories={allCategories}
                 onAddCategory={addCategory}
                 onUpdateCategory={updateCategory}
                 onRemoveCategory={removeCategory}
+                onResetCategory={resetToDefault}
+                isCustom={isCustom}
+                isEdited={isEdited}
               />
 
               <div className="flex gap-3">

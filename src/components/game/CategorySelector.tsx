@@ -1,32 +1,36 @@
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Pencil, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
-import { gameCategories, type Category } from '@/data/gameCategories';
+import { type Category } from '@/data/gameCategories';
 import { CustomCategoryModal } from './CustomCategoryModal';
 import { EditCategoryModal } from './EditCategoryModal';
 
 interface CategorySelectorProps {
   selectedCategory: string | null;
   onSelectCategory: (categoryId: string) => void;
-  customCategories: Category[];
+  allCategories: Category[];
   onAddCategory: (category: Category) => void;
   onUpdateCategory: (categoryId: string, updates: Partial<Category>) => void;
   onRemoveCategory: (categoryId: string) => void;
+  onResetCategory?: (categoryId: string) => void;
+  isCustom: (categoryId: string) => boolean;
+  isEdited: (categoryId: string) => boolean;
 }
 
 export const CategorySelector = ({ 
   selectedCategory, 
   onSelectCategory,
-  customCategories,
+  allCategories,
   onAddCategory,
   onUpdateCategory,
   onRemoveCategory,
+  onResetCategory,
+  isCustom,
+  isEdited,
 }: CategorySelectorProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
-
-  const allCategories = [...gameCategories, ...customCategories];
 
   const handleDeleteCategory = (e: React.MouseEvent, categoryId: string) => {
     e.stopPropagation();
@@ -42,7 +46,7 @@ export const CategorySelector = ({
     if (categoryToDelete) {
       onRemoveCategory(categoryToDelete);
       if (selectedCategory === categoryToDelete) {
-        onSelectCategory(gameCategories[0]?.id || '');
+        onSelectCategory(allCategories[0]?.id || '');
       }
       setCategoryToDelete(null);
     }
@@ -60,7 +64,9 @@ export const CategorySelector = ({
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {allCategories.map((category, index) => {
-            const isCustom = category.id.startsWith('custom-');
+            const isCategoryCustom = isCustom(category.id);
+            const isCategoryEdited = isEdited(category.id);
+            
             return (
               <motion.button
                 key={category.id}
@@ -72,22 +78,31 @@ export const CategorySelector = ({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {isCustom && (
-                  <div className="absolute top-2 left-2 flex gap-1 z-10">
-                    <button
-                      onClick={(e) => handleEditCategory(e, category)}
-                      className="p-1 rounded-full bg-primary/20 hover:bg-primary/40 transition-colors"
-                    >
-                      <Pencil className="w-3 h-3 text-primary" />
-                    </button>
+                {/* Edit/Delete buttons - show for all categories */}
+                <div className="absolute top-2 left-2 flex gap-1 z-10">
+                  <button
+                    onClick={(e) => handleEditCategory(e, category)}
+                    className="p-1 rounded-full bg-primary/20 hover:bg-primary/40 transition-colors"
+                  >
+                    <Pencil className="w-3 h-3 text-primary" />
+                  </button>
+                  {isCategoryCustom && (
                     <button
                       onClick={(e) => handleDeleteCategory(e, category.id)}
                       className="p-1 rounded-full bg-destructive/20 hover:bg-destructive/40 transition-colors"
                     >
                       <Trash2 className="w-3 h-3 text-destructive" />
                     </button>
+                  )}
+                </div>
+
+                {/* Edited indicator */}
+                {isCategoryEdited && !isCategoryCustom && (
+                  <div className="absolute top-2 right-2">
+                    <span className="text-xs text-primary">✎</span>
                   </div>
                 )}
+
                 <div className="text-3xl mb-2">{category.emoji}</div>
                 <div className="font-medium text-sm">{category.name}</div>
                 <div className="text-xs text-muted-foreground mt-1">
@@ -132,6 +147,9 @@ export const CategorySelector = ({
         category={categoryToEdit}
         onSave={onUpdateCategory}
         onDelete={onRemoveCategory}
+        onReset={onResetCategory}
+        isCustom={categoryToEdit ? isCustom(categoryToEdit.id) : false}
+        isEdited={categoryToEdit ? isEdited(categoryToEdit.id) : false}
       />
 
       {/* Delete Confirmation */}

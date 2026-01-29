@@ -14,7 +14,8 @@ import { ArtistResults } from './ArtistResults';
 import { GlobalControls, GlobalFooter } from '../GlobalControls';
 import { useScoring, PlayerScore } from '@/hooks/useScoring';
 import { useSoundEffects, setGlobalSoundEffects } from '@/hooks/useSoundEffects';
-import { drawingCategories, getRandomDrawingWord, playerColors } from '@/data/drawingCategories';
+import { useEditableDrawingCategories } from '@/hooks/useEditableDrawingCategories';
+import { playerColors } from '@/data/drawingCategories';
 
 type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'drawing' | 'post-drawing' | 'voting' | 'results';
 
@@ -62,6 +63,17 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
   
   const soundEffects = useSoundEffects();
   setGlobalSoundEffects(soundEffects);
+
+  const {
+    allCategories: drawingCategories,
+    addCategory: addDrawingCategory,
+    updateCategory: updateDrawingCategory,
+    removeCategory: removeDrawingCategory,
+    resetToDefault: resetDrawingCategory,
+    isCustom: isDrawingCategoryCustom,
+    isEdited: isDrawingCategoryEdited,
+    getRandomWord: getRandomDrawingWord,
+  } = useEditableDrawingCategories();
   
   const {
     playerScores,
@@ -382,6 +394,12 @@ export const FakeArtistGame = ({ onBack }: FakeArtistGameProps) => {
               onSelectCategory={setSelectedCategory}
               onBack={() => setPhase('setup')}
               onStart={startGame}
+              onAddCategory={addDrawingCategory}
+              onUpdateCategory={updateDrawingCategory}
+              onRemoveCategory={removeDrawingCategory}
+              onResetCategory={resetDrawingCategory}
+              isCustom={isDrawingCategoryCustom}
+              isEdited={isDrawingCategoryEdited}
             />
           </motion.div>
         )}
