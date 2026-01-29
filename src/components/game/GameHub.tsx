@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Users, HelpCircle, Download, Sparkles } from 'lucide-react';
+import { Palette, Users, HelpCircle, Download, Sparkles, Bomb } from 'lucide-react';
 import { GameLogo } from './GameLogo';
 import ImposterGame from './ImposterGame';
 import FakeArtistGame from './fakeartist/FakeArtistGame';
+import BombGame from './bomb/BombGame';
 import { GlobalControls, GlobalFooter } from './GlobalControls';
 import { InstallPrompt } from './InstallPrompt';
 
-type GameType = 'hub' | 'imposter' | 'artist';
+type GameType = 'hub' | 'imposter' | 'artist' | 'bomb';
 
 interface GameCardProps {
   title: string;
@@ -86,7 +87,7 @@ const RulesModal = ({
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
-  gameType: 'imposter' | 'artist' 
+  gameType: 'imposter' | 'artist' | 'bomb'
 }) => {
   if (!isOpen) return null;
 
@@ -105,11 +106,20 @@ const RulesModal = ({
     "בסוף מצביעים. אם המתחזה נתפס – יש לו ניחוש אחד מה המילה כדי לנצח בכל זאת!",
   ];
 
-  const rules = gameType === 'imposter' ? imposterRules : artistRules;
-  const title = gameType === 'imposter' ? 'המתחזה' : 'הצייר המזויף';
+  const bombRules = [
+    "העבירו את הטלפון מאחד לשני בסיבוב.",
+    "ענו על השאלה שמופיעה על המסך.",
+    "לחצו על הכפתור כדי להעביר את הפצצה לשחקן הבא.",
+    "מי שהפצצה מתפוצצת עליו - שותה! 🍺",
+  ];
+
+  const rules = gameType === 'imposter' ? imposterRules : gameType === 'artist' ? artistRules : bombRules;
+  const title = gameType === 'imposter' ? 'המתחזה' : gameType === 'artist' ? 'הצייר המזויף' : 'הפצצה';
   const gradient = gameType === 'imposter' 
     ? 'linear-gradient(135deg, hsl(186 100% 50%), hsl(220 100% 60%))'
-    : 'linear-gradient(135deg, hsl(320 100% 60%), hsl(270 100% 60%))';
+    : gameType === 'artist' 
+    ? 'linear-gradient(135deg, hsl(320 100% 60%), hsl(270 100% 60%))'
+    : 'linear-gradient(135deg, hsl(30 100% 50%), hsl(15 100% 50%))';
 
   return (
     <AnimatePresence>
@@ -134,8 +144,10 @@ const RulesModal = ({
             >
               {gameType === 'imposter' ? (
                 <Users className="w-6 h-6 text-white" />
-              ) : (
+              ) : gameType === 'artist' ? (
                 <Palette className="w-6 h-6 text-white" />
+              ) : (
+                <Bomb className="w-6 h-6 text-white" />
               )}
             </div>
             <h2 className="text-2xl font-black">{title}</h2>
@@ -175,7 +187,7 @@ const RulesModal = ({
 
 export const GameHub = () => {
   const [currentGame, setCurrentGame] = useState<GameType>('hub');
-  const [rulesModal, setRulesModal] = useState<{ open: boolean; type: 'imposter' | 'artist' }>({
+  const [rulesModal, setRulesModal] = useState<{ open: boolean; type: 'imposter' | 'artist' | 'bomb' }>({
     open: false,
     type: 'imposter',
   });
@@ -187,6 +199,10 @@ export const GameHub = () => {
 
   if (currentGame === 'artist') {
     return <FakeArtistGame onBack={() => setCurrentGame('hub')} />;
+  }
+
+  if (currentGame === 'bomb') {
+    return <BombGame onBack={() => setCurrentGame('hub')} />;
   }
 
   return (
@@ -252,6 +268,22 @@ export const GameHub = () => {
               glowColor="hsl(320 100% 60%)"
               onPlay={() => setCurrentGame('artist')}
               onHelp={() => setRulesModal({ open: true, type: 'artist' })}
+            />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <GameCard
+              title="הפצצה"
+              subtitle="תעביר לפני שזה מתפוצץ! 💥"
+              icon={<Bomb className="w-10 h-10 text-white" />}
+              gradient="linear-gradient(135deg, hsl(30 100% 50%), hsl(15 100% 50%))"
+              glowColor="hsl(30 100% 50%)"
+              onPlay={() => setCurrentGame('bomb')}
+              onHelp={() => setRulesModal({ open: true, type: 'bomb' })}
             />
           </motion.div>
         </div>
