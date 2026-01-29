@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Users, HelpCircle, Moon, Sun, Sparkles } from 'lucide-react';
+import { Palette, Users, HelpCircle, Download, Sparkles } from 'lucide-react';
 import { GameLogo } from './GameLogo';
 import ImposterGame from './ImposterGame';
 import FakeArtistGame from './fakeartist/FakeArtistGame';
-import { useTheme } from '@/hooks/useTheme';
+import { GlobalControls, GlobalFooter } from './GlobalControls';
+import { InstallPrompt } from './InstallPrompt';
 
 type GameType = 'hub' | 'imposter' | 'artist';
 
@@ -178,7 +179,7 @@ export const GameHub = () => {
     open: false,
     type: 'imposter',
   });
-  const { theme, toggleTheme } = useTheme();
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   if (currentGame === 'imposter') {
     return <ImposterGame onBack={() => setCurrentGame('hub')} />;
@@ -189,22 +190,11 @@ export const GameHub = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 flex flex-col">
+    <div className="min-h-screen p-4 flex flex-col pb-16">
       <div className="bg-glow" />
       
-      {/* Theme toggle */}
-      <div className="absolute top-4 left-4 z-10">
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-full glass-card hover:bg-primary/20 transition-colors"
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-primary" />
-          ) : (
-            <Moon className="w-5 h-5 text-primary" />
-          )}
-        </button>
-      </div>
+      {/* Global controls - no help button on hub */}
+      <GlobalControls showHelp={false} />
 
       <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full gap-8">
         {/* Header */}
@@ -266,6 +256,20 @@ export const GameHub = () => {
           </motion.div>
         </div>
 
+        {/* Download button */}
+        <motion.button
+          onClick={() => setShowInstallPrompt(true)}
+          className="w-full py-3 rounded-xl glass-card flex items-center justify-center gap-2 hover:bg-muted/40 transition-colors"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Download className="w-5 h-5 text-primary" />
+          <span className="font-medium">הורידו עכשיו</span>
+        </motion.button>
+
         {/* Footer hint */}
         <motion.p
           className="text-xs text-muted-foreground/50 text-center"
@@ -282,6 +286,11 @@ export const GameHub = () => {
         onClose={() => setRulesModal({ ...rulesModal, open: false })}
         gameType={rulesModal.type}
       />
+
+      <InstallPrompt isOpen={showInstallPrompt} onClose={() => setShowInstallPrompt(false)} />
+
+      {/* Global footer */}
+      <GlobalFooter />
     </div>
   );
 };
