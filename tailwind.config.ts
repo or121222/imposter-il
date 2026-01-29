@@ -125,6 +125,41 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "icon-pulse": {
+          "0%, 100%": { transform: "scale(1)", filter: "drop-shadow(0 0 8px currentColor)" },
+          "50%": { transform: "scale(1.1)", filter: "drop-shadow(0 0 16px currentColor)" },
+        },
+        "icon-bounce": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "25%": { transform: "translateY(-4px) rotate(-3deg)" },
+          "75%": { transform: "translateY(-4px) rotate(3deg)" },
+        },
+        "icon-shake": {
+          "0%, 100%": { transform: "translateX(0) rotate(0deg)" },
+          "25%": { transform: "translateX(-2px) rotate(-5deg)" },
+          "50%": { transform: "translateX(2px) rotate(5deg)" },
+          "75%": { transform: "translateX(-2px) rotate(-5deg)" },
+        },
+        "heartbeat": {
+          "0%, 100%": { transform: "scale(1)" },
+          "14%": { transform: "scale(1.15)" },
+          "28%": { transform: "scale(1)" },
+          "42%": { transform: "scale(1.15)" },
+          "70%": { transform: "scale(1)" },
+        },
+        "card-glow": {
+          "0%, 100%": { 
+            boxShadow: "0 0 30px var(--card-glow-color, hsl(186 100% 50%)) / 0.3), inset 0 1px 0 hsl(0 0% 100% / 0.1)" 
+          },
+          "50%": { 
+            boxShadow: "0 0 50px var(--card-glow-color, hsl(186 100% 50%)) / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.2)" 
+          },
+        },
+        "border-flow": {
+          "0%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+          "100%": { backgroundPosition: "0% 50%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -137,6 +172,12 @@ export default {
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
         "shimmer": "shimmer 2s linear infinite",
+        "icon-pulse": "icon-pulse 2s ease-in-out infinite",
+        "icon-bounce": "icon-bounce 1.5s ease-in-out infinite",
+        "icon-shake": "icon-shake 0.5s ease-in-out infinite",
+        "heartbeat": "heartbeat 1.5s ease-in-out infinite",
+        "card-glow": "card-glow 3s ease-in-out infinite",
+        "border-flow": "border-flow 3s ease infinite",
       },
     },
   },
