@@ -20,7 +20,11 @@ import { InstallPrompt } from '@/components/game/InstallPrompt';
 import { VotingScreen, VotingResults } from '@/components/game/VotingScreen';
 import { ScoreBoard } from '@/components/game/ScoreBoard';
 
-const ImposterGame = () => {
+interface ImposterGameProps {
+  onBack?: () => void;
+}
+
+const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
   const { customCategories, addCategory, updateCategory, removeCategory } = useCustomCategories();
   const {
     playerScores,
@@ -201,7 +205,18 @@ const ImposterGame = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, x: -100 }}
           >
-            <div className="py-8">
+            {/* Back button */}
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="self-start mb-4 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 rotate-180" />
+                <span>חזרה</span>
+              </button>
+            )}
+
+            <div className={onBack ? 'py-4' : 'py-8'}>
               <GameLogo size="md" />
             </div>
 
