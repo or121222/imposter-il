@@ -69,6 +69,13 @@ const initialState: GameState = {
 export const useGameState = (allCategories: Category[] = []) => {
   const [state, setState] = useState<GameState>(initialState);
 
+  const createPlayerId = useCallback(() => {
+    // Avoid collisions when adding multiple players quickly (e.g. bulk-sync from scoreboard)
+    return globalThis.crypto?.randomUUID
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }, []);
+
   const addPlayer = useCallback((name: string) => {
     if (!name.trim()) return;
     setState(prev => ({
@@ -76,14 +83,14 @@ export const useGameState = (allCategories: Category[] = []) => {
       players: [
         ...prev.players,
         {
-          id: Date.now().toString(),
+          id: createPlayerId(),
           name: name.trim(),
           role: 'civilian',
           hasSeenCard: false,
         }
       ]
     }));
-  }, []);
+  }, [createPlayerId]);
 
   const removePlayer = useCallback((id: string) => {
     setState(prev => ({
@@ -199,10 +206,12 @@ export const useGameState = (allCategories: Category[] = []) => {
   }, [state.selectedCategory, state.players, state.settings]);
 
   // Mark a specific player as having seen their card (for hub flow)
-  const markPlayerSeenById = useCallback((playerId: string) => {
+  const markPlayerSeenById = useCallback((playerId: string, playerName?: string) => {
     setState(prev => {
       const newPlayers = prev.players.map(p => 
-        p.id === playerId ? { ...p, hasSeenCard: true } : p
+        (p.id === playerId && (!playerName || p.name === playerName))
+          ? { ...p, hasSeenCard: true }
+          : p
       );
       return {
         ...prev,

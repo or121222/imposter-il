@@ -16,7 +16,7 @@ interface RoleSelectionHubProps {
   trollWord: string | null;
   imposterName: string | null;
   customCategories?: Category[];
-  onPlayerViewed: (playerId: string) => void;
+  onPlayerViewed: (playerId: string, playerName: string) => void;
   onAllViewed: () => void;
 }
 
@@ -63,7 +63,7 @@ export const RoleSelectionHub = ({
   const handleRevealComplete = () => {
     if (selectedPlayer) {
       // First update the parent state
-      onPlayerViewed(selectedPlayer.id);
+      onPlayerViewed(selectedPlayer.id, selectedPlayer.name);
     }
     // Then close the reveal modal
     setShowReveal(false);
@@ -162,7 +162,7 @@ export const RoleSelectionHub = ({
               
               return (
                 <motion.button
-                  key={player.id}
+                  key={`${player.id}-${player.name}-${index}`}
                   onClick={() => handlePlayerClick(player)}
                   disabled={hasViewed || allViewed}
                   className={`
