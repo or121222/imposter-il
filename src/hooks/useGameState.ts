@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getRandomWordPair, getTrollWords, type Category } from '@/data/gameCategories';
 
-export type GamePhase = 'setup' | 'category' | 'passing' | 'reveal' | 'starter' | 'playing' | 'voting' | 'results';
+export type GamePhase = 'setup' | 'category' | 'roleHub' | 'starter' | 'playing' | 'voting' | 'results';
 
 export type PlayerRole = 'civilian' | 'imposter' | 'jester' | 'confused' | 'accomplice';
 
@@ -181,12 +181,12 @@ export const useGameState = (allCategories: Category[] = []) => {
     const imposterPlayer = playersWithRoles.find(p => p.role === 'imposter');
     const imposterName = imposterPlayer?.name || null;
 
-    // Shuffle player order for passing
+    // Shuffle player order for the hub display
     const shuffledPlayers = [...playersWithRoles].sort(() => Math.random() - 0.5);
 
     setState(prev => ({
       ...prev,
-      phase: 'passing',
+      phase: 'roleHub',
       players: shuffledPlayers,
       secretWord,
       confusedWord,
@@ -198,46 +198,37 @@ export const useGameState = (allCategories: Category[] = []) => {
     }));
   }, [state.selectedCategory, state.players, state.settings]);
 
-  const markPlayerSeen = useCallback(() => {
+  // Mark a specific player as having seen their card (for hub flow)
+  const markPlayerSeenById = useCallback((playerId: string) => {
     setState(prev => {
-      const newPlayers = [...prev.players];
-      newPlayers[prev.currentPlayerIndex] = {
-        ...newPlayers[prev.currentPlayerIndex],
-        hasSeenCard: true,
-      };
-
-      const nextIndex = prev.currentPlayerIndex + 1;
-      const allSeen = nextIndex >= prev.players.length;
-
-      // Select round starter when all players have seen their cards
-      let roundStarter = prev.roundStarter;
-      if (allSeen) {
-        // Filter eligible starters based on settings
-        let eligiblePlayers = newPlayers;
-        if (prev.settings.imposterNeverStarts && !prev.isTrollRound) {
-          eligiblePlayers = newPlayers.filter(p => p.role !== 'imposter');
-        }
-        // Pick random starter from eligible players
-        const starterPlayer = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
-        roundStarter = starterPlayer.name;
-      }
-
+      const newPlayers = prev.players.map(p => 
+        p.id === playerId ? { ...p, hasSeenCard: true } : p
+      );
       return {
         ...prev,
         players: newPlayers,
-        currentPlayerIndex: allSeen ? 0 : nextIndex,
-        phase: allSeen ? 'starter' : 'passing',
-        roundStarter,
       };
     });
   }, []);
 
-  const revealCard = useCallback(() => {
-    setState(prev => ({ ...prev, phase: 'reveal' }));
-  }, []);
+  // Called when all players have viewed their roles in the hub
+  const completeRoleReveal = useCallback(() => {
+    setState(prev => {
+      // Filter eligible starters based on settings
+      let eligiblePlayers = prev.players;
+      if (prev.settings.imposterNeverStarts && !prev.isTrollRound) {
+        eligiblePlayers = prev.players.filter(p => p.role !== 'imposter');
+      }
+      // Pick random starter from eligible players
+      const starterPlayer = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
+      const roundStarter = starterPlayer?.name || prev.players[0]?.name || null;
 
-  const hideCard = useCallback(() => {
-    setState(prev => ({ ...prev, phase: 'passing' }));
+      return {
+        ...prev,
+        phase: 'starter',
+        roundStarter,
+      };
+    });
   }, []);
 
   const goToVoting = useCallback(() => {
@@ -275,9 +266,8 @@ export const useGameState = (allCategories: Category[] = []) => {
     setPhase,
     selectCategory,
     startGame,
-    markPlayerSeen,
-    revealCard,
-    hideCard,
+    markPlayerSeenById,
+    completeRoleReveal,
     goToVoting,
     setVotes,
     goToResults,
