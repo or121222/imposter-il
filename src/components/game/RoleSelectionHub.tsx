@@ -36,20 +36,22 @@ export const RoleSelectionHub = ({
   const sounds = useSoundEffects();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [showReveal, setShowReveal] = useState(false);
+  const [hasTriggeredCompletion, setHasTriggeredCompletion] = useState(false);
 
   const viewedCount = players.filter(p => p.hasSeenCard).length;
-  const allViewed = viewedCount === players.length;
+  const allViewed = viewedCount === players.length && players.length > 0;
 
-  // Auto-transition when all players have viewed
+  // Auto-transition when all players have viewed - only trigger once
   useEffect(() => {
-    if (allViewed && !showReveal) {
+    if (allViewed && !showReveal && !hasTriggeredCompletion) {
+      setHasTriggeredCompletion(true);
       const timer = setTimeout(() => {
         sounds.playSound('success');
         onAllViewed();
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [allViewed, showReveal, onAllViewed, sounds]);
+  }, [allViewed, showReveal, onAllViewed, sounds, hasTriggeredCompletion]);
 
   const handlePlayerClick = (player: Player) => {
     if (player.hasSeenCard) return;
@@ -60,8 +62,10 @@ export const RoleSelectionHub = ({
 
   const handleRevealComplete = () => {
     if (selectedPlayer) {
+      // First update the parent state
       onPlayerViewed(selectedPlayer.id);
     }
+    // Then close the reveal modal
     setShowReveal(false);
     setSelectedPlayer(null);
   };
