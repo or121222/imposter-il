@@ -133,9 +133,9 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
     startGame();
   };
 
-  const handlePlayerViewed = (playerId: string) => {
+  const handlePlayerViewed = (playerId: string, playerName: string) => {
     vibrate('light');
-    markPlayerSeenById(playerId);
+    markPlayerSeenById(playerId, playerName);
   };
 
   const handleAllPlayersViewed = () => {
