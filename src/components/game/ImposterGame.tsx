@@ -10,8 +10,7 @@ import { GameLogo } from '@/components/game/GameLogo';
 import { PlayerInput } from '@/components/game/PlayerInput';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
 import { CategorySelector } from '@/components/game/CategorySelector';
-import { PassingScreen } from '@/components/game/PassingScreen';
-import { CardReveal } from '@/components/game/CardReveal';
+import { RoleSelectionHub } from '@/components/game/RoleSelectionHub';
 import { ActiveGameScreen } from '@/components/game/ActiveGameScreen';
 import { RoundStarterScreen } from '@/components/game/RoundStarterScreen';
 import { VotingScreen, VotingResults } from '@/components/game/VotingScreen';
@@ -53,9 +52,8 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
     setPhase,
     selectCategory,
     startGame,
-    markPlayerSeen,
-    revealCard,
-    hideCard,
+    markPlayerSeenById,
+    completeRoleReveal,
     setVotes,
     resetGame,
   } = useGameState(allCategories);
@@ -135,14 +133,14 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
     startGame();
   };
 
-  const handleRevealCard = () => {
-    // Sound is now handled inside CardReveal when user clicks to reveal
-    revealCard();
+  const handlePlayerViewed = (playerId: string) => {
+    vibrate('light');
+    markPlayerSeenById(playerId);
   };
 
-  const handleMarkSeen = () => {
-    vibrate('light');
-    markPlayerSeen();
+  const handleAllPlayersViewed = () => {
+    vibrate('success');
+    completeRoleReveal();
   };
 
   const handleStartRound = () => {
@@ -308,31 +306,16 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
           </motion.div>
         )}
 
-        {/* Passing Phase */}
-        {state.phase === 'passing' && currentPlayer && (
+        {/* Role Selection Hub Phase */}
+        {state.phase === 'roleHub' && (
           <motion.div
-            key={`passing-${currentPlayer.id}`}
+            key="roleHub"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <PassingScreen
-              player={currentPlayer}
-              onReveal={handleRevealCard}
-            />
-          </motion.div>
-        )}
-
-        {/* Reveal Phase */}
-        {state.phase === 'reveal' && currentPlayer && (
-          <motion.div
-            key={`reveal-${currentPlayer.id}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <CardReveal
-              player={currentPlayer}
+            <RoleSelectionHub
+              players={state.players}
               secretWord={state.secretWord}
               confusedWord={state.confusedWord}
               categoryId={state.selectedCategory}
@@ -340,8 +323,9 @@ const ImposterGame = ({ onBack }: ImposterGameProps = {}) => {
               isTrollRound={state.isTrollRound}
               trollWord={state.trollWord}
               imposterName={state.imposterName}
-              onHide={handleMarkSeen}
               customCategories={customCategories}
+              onPlayerViewed={handlePlayerViewed}
+              onAllViewed={handleAllPlayersViewed}
             />
           </motion.div>
         )}
